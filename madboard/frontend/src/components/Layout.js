@@ -7,8 +7,7 @@ function Layout({ children }) {
       sx={{
         display: 'flex',
         height: '100vh',
-        width: '100%',
-        bgcolor: '#f5f5f5',
+        width: '100%'
       }}
     >
       {children}
