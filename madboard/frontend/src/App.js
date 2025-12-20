@@ -3,27 +3,17 @@ import {
   Box,
   AppBar,
   Toolbar,
-  Drawer,
   Tab,
   Tabs,
   Typography,
-  Container,
+  Switch,
 } from '@mui/material';
 import Layout from './components/Layout';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 
-function App() {
+function App({ isDarkMode, onThemeToggle }) {
   const [selectedTab, setSelectedTab] = useState(0);
-  const [apiStatus, setApiStatus] = useState('Loading...');
-
-  useEffect(() => {
-    // Check API status
-    fetch('/api/status')
-      .then(res => res.json())
-      .then(data => setApiStatus(data.message))
-      .catch(err => setApiStatus('API not available'));
-  }, []);
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
@@ -38,9 +28,16 @@ function App() {
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
               MadBoard
             </Typography>
-            <Typography variant="body2">
-              {apiStatus}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2">
+                {isDarkMode ? '🌙' : '☀️'}
+              </Typography>
+              <Switch
+                checked={isDarkMode}
+                onChange={onThemeToggle}
+                color="default"
+              />
+            </Box>
           </Toolbar>
           <Tabs
             value={selectedTab}

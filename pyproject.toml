@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "madboard"
+version = "0.1.0"
+description = "A simple web application with Python Flask backend and React frontend"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["flask", "react", "web-application"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "flask>=2.3.0",
+    "flask-cors>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+madboard = "madboard.backend.server:run_server"
+
+[project.urls]
+Homepage = "https://github.com/theoheimel/madboard"
+Documentation = "https://github.com/theoheimel/madboard#readme"
+Repository = "https://github.com/theoheimel/madboard.git"
+Issues = "https://github.com/theoheimel/madboard/issues"
+
+[tool.setuptools]
+packages = ["madboard", "madboard.backend", "madboard.frontend"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+madboard = [
+    "frontend/build/**/*",
+    "frontend/public/**/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-v --cov=madboard"
+
+[tool.coverage.run]
+source = ["madboard"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_gitignore = true

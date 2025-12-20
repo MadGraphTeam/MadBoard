@@ -14,7 +14,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import SettingsIcon from '@mui/icons-material/Settings';
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 360;
 
 const menuItems = [
   { label: 'Home', icon: <HomeIcon /> },
@@ -47,7 +47,7 @@ function Sidebar() {
         }}
       >
         <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 'bold' }}>Menu</span>
+          <span style={{ fontWeight: 'bold' }}>Runs</span>
           <IconButton onClick={toggleDrawer} size="small">
             <MenuIcon />
           </IconButton>
