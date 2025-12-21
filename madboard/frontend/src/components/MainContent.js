@@ -58,15 +58,28 @@ function ProcessTab({ selectedProcess }) {
   }, [selectedProcess]);
 
   const columns = [
-    { field: "run", headerName: "Run", width: 150, sortable: true },
+    { field: "run", headerName: "Run", flex: 1, minWidth: 100, sortable: true },
     {
       field: "crossSection",
       headerName: "Cross section (pb)",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
       sortable: true,
     },
-    { field: "events", headerName: "Events", width: 150, sortable: true },
-    { field: "status", headerName: "Status", width: 150, sortable: true },
+    {
+      field: "events",
+      headerName: "Events",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
   ];
 
   if (loading) return <CircularProgress />;
@@ -134,42 +147,71 @@ function RunTab({ selectedProcess, selectedRun }) {
   }, [selectedProcess, selectedRun]);
 
   const subprocessesColumns = [
-    { field: "name", headerName: "Name", width: 150, sortable: true },
+    {
+      field: "name",
+      headerName: "Name",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
     {
       field: "crossSection",
       headerName: "Cross section",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
       sortable: true,
     },
-    { field: "samples", headerName: "Samples", width: 150, sortable: true },
+    {
+      field: "samples",
+      headerName: "Samples",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
     {
       field: "unweightedEvents",
       headerName: "Unweighted events",
-      width: 150,
+      flex: 1,
+      minWidth: 120,
       sortable: true,
     },
   ];
 
   const channelsColumns = [
-    { field: "name", headerName: "Name", width: 120, sortable: true },
+    {
+      field: "name",
+      headerName: "Name",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
     {
       field: "crossSection",
       headerName: "Cross section",
-      width: 120,
+      flex: 1,
+      minWidth: 120,
       sortable: true,
     },
-    { field: "samples", headerName: "Samples", width: 120, sortable: true },
+    {
+      field: "samples",
+      headerName: "Samples",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
     {
       field: "unweightedEvents",
       headerName: "Unweighted events",
-      width: 120,
+      flex: 1,
+      minWidth: 120,
       sortable: true,
     },
-    { field: "rsd", headerName: "RSD", width: 100, sortable: true },
+    { field: "rsd", headerName: "RSD", flex: 1, minWidth: 80, sortable: true },
     {
       field: "unweightingEfficiency",
       headerName: "Unweighting efficiency",
-      width: 150,
+      flex: 1,
+      minWidth: 150,
       sortable: true,
     },
   ];

@@ -42,9 +42,14 @@ function App({ isDarkMode, onThemeToggle }) {
       />
       <Box
         component="main"
-        sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
       >
-        <AppBar position="static">
+        <AppBar position="sticky" sx={{ top: 0, zIndex: 1200 }}>
           <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
               MadBoard
@@ -74,7 +79,7 @@ function App({ isDarkMode, onThemeToggle }) {
             </Tabs>
           )}
         </AppBar>
-        <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Box sx={{ flexGrow: 1, p: 3, overflow: "auto" }}>
           <MainContent
             selectedProcess={selectedProcess}
             selectedRun={selectedRun}

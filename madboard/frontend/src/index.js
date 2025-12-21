@@ -5,7 +5,11 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 
 function AppWithTheme() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Initialize dark mode from system preference
+  const prefersDarkMode =
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const [isDarkMode, setIsDarkMode] = useState(prefersDarkMode);
 
   const theme = createTheme({
     palette: {

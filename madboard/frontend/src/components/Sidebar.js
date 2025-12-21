@@ -111,6 +111,8 @@ function Sidebar({
           "& .MuiDrawer-paper": {
             width: DRAWER_WIDTH,
             boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
           },
         }}
       >
@@ -120,6 +122,12 @@ function Sidebar({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            position: "sticky",
+            top: 0,
+            zIndex: 1100,
+            backgroundColor: "background.paper",
+            borderBottom: "1px solid",
+            borderColor: "divider",
           }}
         >
           <span style={{ fontWeight: "bold" }}>Processes</span>
@@ -153,7 +161,7 @@ function Sidebar({
           </Box>
         )}
         {!loading && !error && (
-          <List>
+          <List sx={{ overflow: "auto", flexGrow: 1 }}>
             {processes.map((process) => (
               <React.Fragment key={process.name}>
                 <ListItem disablePadding>
