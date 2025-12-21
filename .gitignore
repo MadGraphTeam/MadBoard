@@ -244,3 +244,6 @@ madboard/frontend/.env.local
 madboard/frontend/.env.development.local
 madboard/frontend/.env.test.local
 madboard/frontend/.env.production.local
+
+# Mac OS
+.DS_Store
