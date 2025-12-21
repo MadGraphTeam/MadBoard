@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import React, { useState } from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 
 function AppWithTheme() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const theme = createTheme({
     palette: {
-      mode: isDarkMode ? 'dark' : 'light',
+      mode: isDarkMode ? "dark" : "light",
       primary: {
-        main: '#1976d2',
+        main: "#1976d2",
       },
       secondary: {
-        main: '#dc004e',
+        main: "#dc004e",
       },
     },
   });
@@ -31,9 +31,9 @@ function AppWithTheme() {
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <AppWithTheme />
-  </React.StrictMode>
+  </React.StrictMode>,
 );

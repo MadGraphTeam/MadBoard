@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -15,10 +15,10 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-} from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid';
-import EditIcon from '@mui/icons-material/Edit';
-import Editor from '@monaco-editor/react';
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
+import EditIcon from "@mui/icons-material/Edit";
+import Editor from "@monaco-editor/react";
 
 // Process Tab Component
 function ProcessTab({ selectedProcess }) {
@@ -33,16 +33,16 @@ function ProcessTab({ selectedProcess }) {
       try {
         setLoading(true);
         const response = await fetch(`/api/processes/${selectedProcess}/runs`);
-        if (!response.ok) throw new Error('Failed to fetch runs');
+        if (!response.ok) throw new Error("Failed to fetch runs");
         const data = await response.json();
 
         // Transform runs to rows format
         const processedRows = data.runs.map((run, index) => ({
           id: index,
           run,
-          crossSection: '-',
-          events: '-',
-          status: 'Pending',
+          crossSection: "-",
+          events: "-",
+          status: "Pending",
         }));
         setRows(processedRows);
         setError(null);
@@ -58,17 +58,22 @@ function ProcessTab({ selectedProcess }) {
   }, [selectedProcess]);
 
   const columns = [
-    { field: 'run', headerName: 'Run', width: 150, sortable: true },
-    { field: 'crossSection', headerName: 'Cross section (pb)', width: 150, sortable: true },
-    { field: 'events', headerName: 'Events', width: 150, sortable: true },
-    { field: 'status', headerName: 'Status', width: 150, sortable: true },
+    { field: "run", headerName: "Run", width: 150, sortable: true },
+    {
+      field: "crossSection",
+      headerName: "Cross section (pb)",
+      width: 150,
+      sortable: true,
+    },
+    { field: "events", headerName: "Events", width: 150, sortable: true },
+    { field: "status", headerName: "Status", width: 150, sortable: true },
   ];
 
   if (loading) return <CircularProgress />;
   if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
-    <Box sx={{ height: 400, width: '100%' }}>
+    <Box sx={{ height: 400, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
@@ -92,15 +97,31 @@ function RunTab({ selectedProcess, selectedRun }) {
     const fetchRunInfo = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/processes/${selectedProcess}/runs/${selectedRun}/info`);
-        if (!response.ok) throw new Error('Failed to fetch run info');
+        const response = await fetch(
+          `/api/processes/${selectedProcess}/runs/${selectedRun}/info`,
+        );
+        if (!response.ok) throw new Error("Failed to fetch run info");
 
         // Placeholder data - in a real app, parse the JSON response
         setSubprocessesRows([
-          { id: 1, name: 'Subprocess 1', crossSection: '1.5', samples: '1000', unweightedEvents: '500' },
+          {
+            id: 1,
+            name: "Subprocess 1",
+            crossSection: "1.5",
+            samples: "1000",
+            unweightedEvents: "500",
+          },
         ]);
         setChannelsRows([
-          { id: 1, name: 'Channel 1', crossSection: '1.5', samples: '1000', unweightedEvents: '500', rsd: '0.05', unweightingEfficiency: '0.95' },
+          {
+            id: 1,
+            name: "Channel 1",
+            crossSection: "1.5",
+            samples: "1000",
+            unweightedEvents: "500",
+            rsd: "0.05",
+            unweightingEfficiency: "0.95",
+          },
         ]);
       } catch (err) {
         console.error(err);
@@ -113,28 +134,55 @@ function RunTab({ selectedProcess, selectedRun }) {
   }, [selectedProcess, selectedRun]);
 
   const subprocessesColumns = [
-    { field: 'name', headerName: 'Name', width: 150, sortable: true },
-    { field: 'crossSection', headerName: 'Cross section', width: 150, sortable: true },
-    { field: 'samples', headerName: 'Samples', width: 150, sortable: true },
-    { field: 'unweightedEvents', headerName: 'Unweighted events', width: 150, sortable: true },
+    { field: "name", headerName: "Name", width: 150, sortable: true },
+    {
+      field: "crossSection",
+      headerName: "Cross section",
+      width: 150,
+      sortable: true,
+    },
+    { field: "samples", headerName: "Samples", width: 150, sortable: true },
+    {
+      field: "unweightedEvents",
+      headerName: "Unweighted events",
+      width: 150,
+      sortable: true,
+    },
   ];
 
   const channelsColumns = [
-    { field: 'name', headerName: 'Name', width: 120, sortable: true },
-    { field: 'crossSection', headerName: 'Cross section', width: 120, sortable: true },
-    { field: 'samples', headerName: 'Samples', width: 120, sortable: true },
-    { field: 'unweightedEvents', headerName: 'Unweighted events', width: 120, sortable: true },
-    { field: 'rsd', headerName: 'RSD', width: 100, sortable: true },
-    { field: 'unweightingEfficiency', headerName: 'Unweighting efficiency', width: 150, sortable: true },
+    { field: "name", headerName: "Name", width: 120, sortable: true },
+    {
+      field: "crossSection",
+      headerName: "Cross section",
+      width: 120,
+      sortable: true,
+    },
+    { field: "samples", headerName: "Samples", width: 120, sortable: true },
+    {
+      field: "unweightedEvents",
+      headerName: "Unweighted events",
+      width: 120,
+      sortable: true,
+    },
+    { field: "rsd", headerName: "RSD", width: 100, sortable: true },
+    {
+      field: "unweightingEfficiency",
+      headerName: "Unweighting efficiency",
+      width: 150,
+      sortable: true,
+    },
   ];
 
   if (loading) return <CircularProgress />;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <Box>
-        <Typography variant="h6" sx={{ mb: 2 }}>Subprocesses</Typography>
-        <Box sx={{ height: 300, width: '100%' }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Subprocesses
+        </Typography>
+        <Box sx={{ height: 300, width: "100%" }}>
           <DataGrid
             rows={subprocessesRows}
             columns={subprocessesColumns}
@@ -145,8 +193,10 @@ function RunTab({ selectedProcess, selectedRun }) {
         </Box>
       </Box>
       <Box>
-        <Typography variant="h6" sx={{ mb: 2 }}>Channels</Typography>
-        <Box sx={{ height: 300, width: '100%' }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Channels
+        </Typography>
+        <Box sx={{ height: 300, width: "100%" }}>
           <DataGrid
             rows={channelsRows}
             columns={channelsColumns}
@@ -166,7 +216,7 @@ function CardsTab({ selectedProcess, isDarkMode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingCard, setEditingCard] = useState(null);
-  const [cardContent, setCardContent] = useState('');
+  const [cardContent, setCardContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -176,7 +226,7 @@ function CardsTab({ selectedProcess, isDarkMode }) {
       try {
         setLoading(true);
         const response = await fetch(`/api/processes/${selectedProcess}/cards`);
-        if (!response.ok) throw new Error('Failed to fetch cards');
+        if (!response.ok) throw new Error("Failed to fetch cards");
         const data = await response.json();
         setCards(data.cards);
         setError(null);
@@ -193,8 +243,10 @@ function CardsTab({ selectedProcess, isDarkMode }) {
 
   const handleEdit = async (cardName) => {
     try {
-      const response = await fetch(`/api/processes/${selectedProcess}/cards/${cardName}`);
-      if (!response.ok) throw new Error('Failed to fetch card');
+      const response = await fetch(
+        `/api/processes/${selectedProcess}/cards/${cardName}`,
+      );
+      if (!response.ok) throw new Error("Failed to fetch card");
       const data = await response.json();
       setEditingCard(cardName);
       setCardContent(data.content);
@@ -206,14 +258,17 @@ function CardsTab({ selectedProcess, isDarkMode }) {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      const response = await fetch(`/api/processes/${selectedProcess}/cards/${editingCard}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: cardContent }),
-      });
-      if (!response.ok) throw new Error('Failed to save card');
+      const response = await fetch(
+        `/api/processes/${selectedProcess}/cards/${editingCard}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: cardContent }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to save card");
       setEditingCard(null);
-      setCardContent('');
+      setCardContent("");
     } catch (err) {
       console.error(err);
     } finally {
@@ -223,7 +278,7 @@ function CardsTab({ selectedProcess, isDarkMode }) {
 
   const handleCancel = () => {
     setEditingCard(null);
-    setCardContent('');
+    setCardContent("");
   };
 
   if (loading) return <CircularProgress />;
@@ -238,14 +293,14 @@ function CardsTab({ selectedProcess, isDarkMode }) {
             height="400px"
             defaultLanguage="python"
             value={cardContent}
-            onChange={(value) => setCardContent(value || '')}
-            theme={isDarkMode ? 'vs-dark' : 'vs-light'}
+            onChange={(value) => setCardContent(value || "")}
+            theme={isDarkMode ? "vs-dark" : "vs-light"}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancel}>Cancel</Button>
           <Button onClick={handleSave} variant="contained" disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? "Saving..." : "Save"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -285,10 +340,22 @@ function PlotsTab() {
 }
 
 // Main Component
-function MainContent({ selectedProcess, selectedRun, selectedTab, isDarkMode }) {
+function MainContent({
+  selectedProcess,
+  selectedRun,
+  selectedTab,
+  isDarkMode,
+}) {
   if (!selectedProcess) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
         <Typography variant="h6" color="text.secondary">
           Please select a process
         </Typography>
@@ -299,8 +366,12 @@ function MainContent({ selectedProcess, selectedRun, selectedTab, isDarkMode }) 
   return (
     <Box>
       {selectedTab === 0 && <ProcessTab selectedProcess={selectedProcess} />}
-      {selectedTab === 1 && selectedRun && <RunTab selectedProcess={selectedProcess} selectedRun={selectedRun} />}
-      {(!selectedRun ? selectedTab === 1 : selectedTab === 2) && <CardsTab selectedProcess={selectedProcess} isDarkMode={isDarkMode} />}
+      {selectedTab === 1 && selectedRun && (
+        <RunTab selectedProcess={selectedProcess} selectedRun={selectedRun} />
+      )}
+      {(!selectedRun ? selectedTab === 1 : selectedTab === 2) && (
+        <CardsTab selectedProcess={selectedProcess} isDarkMode={isDarkMode} />
+      )}
       {(!selectedRun ? selectedTab === 2 : selectedTab === 3) && <PlotsTab />}
     </Box>
   );

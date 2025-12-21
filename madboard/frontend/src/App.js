@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   AppBar,
@@ -7,10 +7,10 @@ import {
   Tabs,
   Typography,
   Switch,
-} from '@mui/material';
-import Layout from './components/Layout';
-import Sidebar from './components/Sidebar';
-import MainContent from './components/MainContent';
+} from "@mui/material";
+import Layout from "./components/Layout";
+import Sidebar from "./components/Sidebar";
+import MainContent from "./components/MainContent";
 
 function App({ isDarkMode, onThemeToggle }) {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -40,15 +40,18 @@ function App({ isDarkMode, onThemeToggle }) {
         selectedProcess={selectedProcess}
         selectedRun={selectedRun}
       />
-      <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box
+        component="main"
+        sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}
+      >
         <AppBar position="static">
           <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
               MadBoard
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography variant="body2">
-                {isDarkMode ? '🌙' : '☀️'}
+                {isDarkMode ? "🌙" : "☀️"}
               </Typography>
               <Switch
                 checked={isDarkMode}

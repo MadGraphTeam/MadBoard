@@ -6,6 +6,7 @@ To set up and run the MadBoard application:
 
 1. Clone the repository
 2. Install the package in development mode:
+
    ```bash
    pip install -e .
    ```
@@ -19,11 +20,13 @@ To set up and run the MadBoard application:
 ## Development
 
 Run the development server with:
+
 ```bash
 python run_dev.py
 ```
 
 This will:
+
 - Build the React frontend
 - Start the Flask backend server
 - Automatically open the browser to `http://localhost:5000`
@@ -39,6 +42,7 @@ python -m madboard.build
 This builds the frontend and copies it to the backend's static directory.
 
 Then install and run:
+
 ```bash
 pip install .
 madboard
