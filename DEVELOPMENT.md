@@ -79,4 +79,3 @@ madboard/
 - **Installable Package**: Can be installed as a Python module
 - **Auto-opening Browser**: Server automatically opens the frontend on startup
 - **Development Ready**: Hot-reload for both frontend and backend
-

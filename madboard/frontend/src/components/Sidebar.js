@@ -17,6 +17,9 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FolderIcon from '@mui/icons-material/Folder';
 import FileIcon from '@mui/icons-material/Description';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 
 const DRAWER_WIDTH = 360;
 
@@ -61,6 +64,36 @@ function Sidebar() {
     }));
   };
 
+  const refreshProcesses = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/processes');
+      if (!response.ok) {
+        throw new Error('Failed to fetch processes');
+      }
+      const data = await response.json();
+      setProcesses(data.processes);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      setProcesses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const expandAll = () => {
+    const newExpandedItems = {};
+    processes.forEach((process) => {
+      newExpandedItems[process.name] = true;
+    });
+    setExpandedItems(newExpandedItems);
+  };
+
+  const collapseAll = () => {
+    setExpandedItems({});
+  };
+
   return (
     <>
       <Drawer
@@ -78,9 +111,20 @@ function Sidebar() {
       >
         <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontWeight: 'bold' }}>Runs</span>
-          <IconButton onClick={toggleDrawer} size="small">
-            <MenuIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <IconButton onClick={refreshProcesses} size="small" title="Refresh processes">
+              <RefreshIcon />
+            </IconButton>
+            <IconButton onClick={collapseAll} size="small" title="Collapse all">
+              <UnfoldLessIcon />
+            </IconButton>
+            <IconButton onClick={expandAll} size="small" title="Expand all">
+              <UnfoldMoreIcon />
+            </IconButton>
+            <IconButton onClick={toggleDrawer} size="small" title="Toggle menu">
+              <MenuIcon />
+            </IconButton>
+          </Box>
         </Box>
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
