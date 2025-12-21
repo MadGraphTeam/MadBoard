@@ -23,7 +23,7 @@ import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 
 const DRAWER_WIDTH = 360;
 
-function Sidebar() {
+function Sidebar({ onSelectProcess, onSelectRun, selectedProcess, selectedRun }) {
   const [open, setOpen] = useState(true);
   const [expandedItems, setExpandedItems] = useState({});
   const [processes, setProcesses] = useState([]);
@@ -110,7 +110,7 @@ function Sidebar() {
         }}
       >
         <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 'bold' }}>Runs</span>
+          <span style={{ fontWeight: 'bold' }}>Processes</span>
           <Box sx={{ display: 'flex', gap: 0.5 }}>
             <IconButton onClick={refreshProcesses} size="small" title="Refresh processes">
               <RefreshIcon />
@@ -146,7 +146,12 @@ function Sidebar() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
+                      backgroundColor: selectedProcess === process.name ? 'rgba(25, 118, 210, 0.12)' : 'transparent',
+                      '&:hover': {
+                        backgroundColor: selectedProcess === process.name ? 'rgba(25, 118, 210, 0.16)' : 'action.hover',
+                      },
                     }}
+                    onClick={() => onSelectProcess(process.name)}
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                       <ListItemIcon>
@@ -171,7 +176,19 @@ function Sidebar() {
                   <List component="div" disablePadding>
                     {process.runs.map((run) => (
                       <ListItem key={run} disablePadding>
-                        <ListItemButton sx={{ pl: 6 }}>
+                        <ListItemButton
+                          sx={{
+                            pl: 6,
+                            backgroundColor: selectedRun === run && selectedProcess === process.name ? 'rgba(220, 0, 78, 0.12)' : 'transparent',
+                            '&:hover': {
+                              backgroundColor: selectedRun === run && selectedProcess === process.name ? 'rgba(220, 0, 78, 0.16)' : 'action.hover',
+                            },
+                          }}
+                          onClick={() => {
+                            onSelectProcess(process.name);
+                            onSelectRun(run);
+                          }}
+                        >
                           <ListItemIcon sx={{ minWidth: 40 }}>
                             <FileIcon />
                           </ListItemIcon>

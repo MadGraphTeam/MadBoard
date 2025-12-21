@@ -98,7 +98,7 @@ def get_runs(process_name):
     return {"runs": sorted(runs)}, 200
 
 
-@api_bp.route("/processes/<process_name>/runs/<run_name>", methods=["GET"])
+@api_bp.route("/processes/<process_name>/runs/<run_name>/info", methods=["GET"])
 def get_run_info(process_name, run_name):
     """Get details of a specific run for a process."""
     process_dir = os.path.join(".", process_name)

@@ -14,14 +14,32 @@ import MainContent from './components/MainContent';
 
 function App({ isDarkMode, onThemeToggle }) {
   const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedProcess, setSelectedProcess] = useState(null);
+  const [selectedRun, setSelectedRun] = useState(null);
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
   };
 
+  const handleSelectProcess = (process) => {
+    setSelectedProcess(process);
+    // Reset run selection and tab when switching process
+    setSelectedRun(null);
+    setSelectedTab(0);
+  };
+
+  const handleSelectRun = (run) => {
+    setSelectedRun(run);
+  };
+
   return (
     <Layout>
-      <Sidebar />
+      <Sidebar
+        onSelectProcess={handleSelectProcess}
+        onSelectRun={handleSelectRun}
+        selectedProcess={selectedProcess}
+        selectedRun={selectedRun}
+      />
       <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         <AppBar position="static">
           <Toolbar>
@@ -39,19 +57,27 @@ function App({ isDarkMode, onThemeToggle }) {
               />
             </Box>
           </Toolbar>
-          <Tabs
-            value={selectedTab}
-            onChange={handleTabChange}
-            textColor="inherit"
-            indicatorColor="secondary"
-          >
-            <Tab label="Home" />
-            <Tab label="Dashboard" />
-            <Tab label="Settings" />
-          </Tabs>
+          {selectedProcess && (
+            <Tabs
+              value={selectedTab}
+              onChange={handleTabChange}
+              textColor="inherit"
+              indicatorColor="secondary"
+            >
+              <Tab label="Process" />
+              {selectedRun && <Tab label="Run" />}
+              <Tab label="Cards" />
+              <Tab label="Plots" />
+            </Tabs>
+          )}
         </AppBar>
         <Box sx={{ flexGrow: 1, p: 3 }}>
-          <MainContent selectedTab={selectedTab} />
+          <MainContent
+            selectedProcess={selectedProcess}
+            selectedRun={selectedRun}
+            selectedTab={selectedTab}
+            isDarkMode={isDarkMode}
+          />
         </Box>
       </Box>
     </Layout>
