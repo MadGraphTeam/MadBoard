@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   AppBar,
@@ -16,21 +16,84 @@ function App({ isDarkMode, onThemeToggle }) {
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
+  const [runsData, setRunsData] = useState({}); // Map of run name to run info
+  const runsDataRef = useRef({});
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
   };
 
   const handleSelectProcess = (process) => {
-    setSelectedProcess(process);
-    // Reset run selection and tab when switching process
-    setSelectedRun(null);
-    setSelectedTab(0);
+    // Only reset data if switching to a different process
+    if (process !== selectedProcess) {
+      setSelectedProcess(process);
+      setSelectedRun(null);
+      setSelectedTab(0);
+      setRunsData({});
+    }
   };
 
   const handleSelectRun = (run) => {
     setSelectedRun(run);
+    setSelectedTab(1);
   };
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    runsDataRef.current = runsData;
+  }, [runsData]);
+
+  // Fetch all runs for the selected process
+  useEffect(() => {
+    if (!selectedProcess) return;
+
+    const fetchAllRuns = async () => {
+      try {
+        const response = await fetch(`/api/processes/${selectedProcess}/runs`);
+        if (!response.ok) throw new Error("Failed to fetch runs");
+        const data = await response.json();
+
+        // New API returns a list of objects with name and info
+        const newRunsData = {};
+        for (const runObj of data.runs) {
+          newRunsData[runObj.name] = runObj.info;
+        }
+        setRunsData(newRunsData);
+      } catch (err) {
+        console.error("Failed to fetch runs:", err);
+      }
+    };
+
+    fetchAllRuns();
+
+    // Set up auto-refresh for non-done runs
+    const interval = setInterval(async () => {
+      try {
+        // Only re-fetch info for non-done runs, don't re-fetch the run list
+        const newRunsData = { ...runsDataRef.current };
+        for (const [runName, runInfo] of Object.entries(runsDataRef.current)) {
+          if (runInfo.status !== "done" && runInfo.status !== "unknown") {
+            try {
+              const infoResponse = await fetch(
+                `/api/processes/${selectedProcess}/runs/${runName}/info`,
+              );
+              if (infoResponse.ok) {
+                const infoData = await infoResponse.json();
+                newRunsData[runName] = infoData;
+                setRunsData(newRunsData);
+              }
+            } catch (err) {
+              console.error(`Failed to fetch info for run ${runName}:`, err);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to update runs:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [selectedProcess]);
 
   return (
     <Layout>
@@ -83,8 +146,10 @@ function App({ isDarkMode, onThemeToggle }) {
           <MainContent
             selectedProcess={selectedProcess}
             selectedRun={selectedRun}
+            onSelectRun={handleSelectRun}
             selectedTab={selectedTab}
             isDarkMode={isDarkMode}
+            runsData={runsData}
           />
         </Box>
       </Box>

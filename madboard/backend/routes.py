@@ -1,6 +1,8 @@
 """API routes for MadBoard backend."""
 
+import json
 import os
+import shutil
 
 from flask import Blueprint, request
 
@@ -94,8 +96,35 @@ def get_runs(process_name):
         return {"error": "Events directory not found"}, 404
     for run_dir in os.scandir(events_dir):
         if run_dir.is_dir():
-            runs.append(run_dir.name)
-    return {"runs": sorted(runs)}, 200
+            info_file = os.path.join(run_dir, "info.json")
+            if os.path.isfile(info_file):
+                with open(info_file, "r") as f:
+                    info = json.load(f)
+            else:
+                info = {"status": "unknown"}
+            runs.append(
+                {
+                    "name": run_dir.name,
+                    "info": info,
+                }
+            )
+    return {"runs": sorted(runs, key=lambda run: run["name"])}, 200
+
+
+@api_bp.route("/processes/<process_name>/runs/<run_name>", methods=["DELETE"])
+def delete_run(process_name, run_name):
+    """Delete a specific run for a process."""
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+    run_dir = os.path.join(process_dir, "Events", run_name)
+    if not os.path.isdir(run_dir):
+        return {"error": "Run not found"}, 404
+    try:
+        shutil.rmtree(run_dir)
+        return {"message": "Run deleted successfully"}, 200
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 
 @api_bp.route("/processes/<process_name>/runs/<run_name>/info", methods=["GET"])
@@ -109,7 +138,7 @@ def get_run_info(process_name, run_name):
         return {"error": "Run not found"}, 404
     info_file = os.path.join(run_dir, "info.json")
     if not os.path.isfile(info_file):
-        return {"error": "Info file not found"}, 404
+        return {"status": "unknown"}, 200
     with open(info_file, "r") as f:
         info = f.read()
     return info, 200

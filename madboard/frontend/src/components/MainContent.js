@@ -8,8 +8,10 @@ import PlotsTab from "./PlotsTab";
 function MainContent({
   selectedProcess,
   selectedRun,
+  onSelectRun,
   selectedTab,
   isDarkMode,
+  runsData,
 }) {
   if (!selectedProcess) {
     return (
@@ -30,9 +32,19 @@ function MainContent({
 
   return (
     <Box>
-      {selectedTab === 0 && <ProcessTab selectedProcess={selectedProcess} />}
+      {selectedTab === 0 && (
+        <ProcessTab
+          selectedProcess={selectedProcess}
+          onSelectRun={onSelectRun}
+          runsData={runsData}
+        />
+      )}
       {selectedTab === 1 && selectedRun && (
-        <RunTab selectedProcess={selectedProcess} selectedRun={selectedRun} />
+        <RunTab
+          selectedProcess={selectedProcess}
+          selectedRun={selectedRun}
+          runsData={runsData}
+        />
       )}
       {(!selectedRun ? selectedTab === 1 : selectedTab === 2) && (
         <CardsTab selectedProcess={selectedProcess} isDarkMode={isDarkMode} />
