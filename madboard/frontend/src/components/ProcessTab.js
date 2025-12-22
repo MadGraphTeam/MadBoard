@@ -68,13 +68,7 @@ function ProcessTab({ selectedProcess }) {
 
   return (
     <Box sx={{ height: 400, width: "100%" }}>
-      <DataGrid
-        rows={rows}
-        columns={columns}
-        pageSize={5}
-        rowsPerPageOptions={[5, 10, 20]}
-        pagination
-      />
+      <DataGrid rows={rows} columns={columns} />
     </Box>
   );
 }

@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import {
+  formatWithError,
+  formatSIPrefix,
+  formatRSD,
+  formatEfficiency,
+} from "../utils/formatting";
 
 function RunTab({ selectedProcess, selectedRun }) {
   const [subprocessesRows, setSubprocessesRows] = useState([]);
@@ -17,28 +23,99 @@ function RunTab({ selectedProcess, selectedRun }) {
           `/api/processes/${selectedProcess}/runs/${selectedRun}/info`,
         );
         if (!response.ok) throw new Error("Failed to fetch run info");
+        const data = await response.json();
 
-        // Placeholder data - in a real app, parse the JSON response
-        setSubprocessesRows([
-          {
-            id: 1,
-            name: "Subprocess 1",
-            crossSection: "1.5",
-            samples: "1000",
-            unweightedEvents: "500",
+        // Extract and format channels data
+        const channels = data.channels || [];
+        const groupedBySubprocess = {};
+
+        // Group channels by subprocess
+        channels.forEach((channel) => {
+          const subprocess = channel.subprocess || 0;
+          if (!groupedBySubprocess[subprocess]) {
+            groupedBySubprocess[subprocess] = [];
+          }
+          groupedBySubprocess[subprocess].push(channel);
+        });
+
+        // Transform subprocesses to rows
+        const subprocessRows = Object.entries(groupedBySubprocess).map(
+          (entry, index) => {
+            const [subprocess, channelList] = entry;
+            // Calculate aggregate for subprocess
+            const meanValue = channelList.reduce(
+              (sum, ch) => sum + (ch.mean || 0),
+              0,
+            );
+            const errorValue = Math.sqrt(
+              channelList.reduce((sum, ch) => sum + (ch.error || 0) ** 2, 0),
+            );
+            const countBeforeCuts = channelList.reduce(
+              (sum, ch) => sum + (ch.count || 0),
+              0,
+            );
+            const countAfterCuts = channelList.reduce(
+              (sum, ch) => sum + (ch.count_after_cuts || 0),
+              0,
+            );
+            const countBeforeCutsOpt = channelList.reduce(
+              (sum, ch) => sum + (ch.count_opt || 0),
+              0,
+            );
+            const countAfterCutsOpt = channelList.reduce(
+              (sum, ch) => sum + (ch.count_after_cuts_opt || 0),
+              0,
+            );
+            const countUnweighted = channelList.reduce(
+              (sum, ch) => sum + (ch.count_unweighted || 0),
+              0,
+            );
+            const relStdDev =
+              (errorValue / meanValue) * Math.sqrt(countBeforeCutsOpt);
+
+            return {
+              id: index,
+              name: subprocess,
+              crossSection: formatWithError(meanValue, errorValue),
+              samplesBeforeCuts: formatSIPrefix(countBeforeCuts),
+              samplesAfterCuts: formatSIPrefix(countAfterCuts),
+              unweightedEvents: formatSIPrefix(countUnweighted),
+              relativeStandardDeviation: formatRSD(relStdDev),
+              unweightingEfficiencyBeforeCuts: formatEfficiency(
+                countUnweighted,
+                countBeforeCutsOpt,
+              ),
+              unweightingEfficiencyAfterCuts: formatEfficiency(
+                countUnweighted,
+                countAfterCutsOpt,
+              ),
+            };
           },
-        ]);
-        setChannelsRows([
-          {
-            id: 1,
-            name: "Channel 1",
-            crossSection: "1.5",
-            samples: "1000",
-            unweightedEvents: "500",
-            rsd: "0.05",
-            unweightingEfficiency: "0.95",
-          },
-        ]);
+        );
+
+        // Transform channels to rows
+        const channelRows = channels.map((channel, index) => ({
+          id: index,
+          subprocess: channel.subprocess || 0,
+          name: channel.name || `Channel ${index + 1}`,
+          crossSection: formatWithError(channel.mean || 0, channel.error || 0),
+          samplesBeforeCuts: formatSIPrefix(channel.count || 0),
+          samplesAfterCuts: formatSIPrefix(channel.count_after_cuts || 0),
+          unweightedEvents: formatSIPrefix(channel.count_unweighted || 0),
+          relativeStandardDeviation: formatRSD(channel.rel_std_dev || 0),
+          unweightingEfficiencyBeforeCuts: formatEfficiency(
+            channel.count_unweighted || 0,
+            channel.count_opt || 0,
+          ),
+          unweightingEfficiencyAfterCuts: formatEfficiency(
+            channel.count_unweighted || 0,
+            channel.count_after_cuts_opt || 0,
+          ),
+        }));
+        console.log(data, subprocessRows, channelRows);
+
+        setSubprocessesRows(subprocessRows);
+        setChannelsRows(channelRows);
       } catch (err) {
         console.error(err);
       } finally {
@@ -65,8 +142,22 @@ function RunTab({ selectedProcess, selectedRun }) {
       sortable: true,
     },
     {
-      field: "samples",
-      headerName: "Samples",
+      field: "samplesBeforeCuts",
+      headerName: "Samples (before cuts)",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
+    {
+      field: "samplesAfterCuts",
+      headerName: "Samples (after cuts)",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
+    {
+      field: "relativeStandardDeviation",
+      headerName: "Relative standard deviation",
       flex: 1,
       minWidth: 100,
       sortable: true,
@@ -76,47 +167,33 @@ function RunTab({ selectedProcess, selectedRun }) {
       headerName: "Unweighted events",
       flex: 1,
       minWidth: 120,
+      sortable: true,
+    },
+    {
+      field: "unweightingEfficiencyBeforeCuts",
+      headerName: "Unweighting efficiency (before cuts)",
+      flex: 1,
+      minWidth: 100,
+      sortable: true,
+    },
+    {
+      field: "unweightingEfficiencyAfterCuts",
+      headerName: "Unweighting efficiency (after cuts)",
+      flex: 1,
+      minWidth: 100,
       sortable: true,
     },
   ];
 
   const channelsColumns = [
     {
-      field: "name",
-      headerName: "Name",
+      field: "subprocess",
+      headerName: "Subprocess",
       flex: 1,
       minWidth: 100,
       sortable: true,
     },
-    {
-      field: "crossSection",
-      headerName: "Cross section",
-      flex: 1,
-      minWidth: 120,
-      sortable: true,
-    },
-    {
-      field: "samples",
-      headerName: "Samples",
-      flex: 1,
-      minWidth: 100,
-      sortable: true,
-    },
-    {
-      field: "unweightedEvents",
-      headerName: "Unweighted events",
-      flex: 1,
-      minWidth: 120,
-      sortable: true,
-    },
-    { field: "rsd", headerName: "RSD", flex: 1, minWidth: 80, sortable: true },
-    {
-      field: "unweightingEfficiency",
-      headerName: "Unweighting efficiency",
-      flex: 1,
-      minWidth: 150,
-      sortable: true,
-    },
+    ...subprocessesColumns,
   ];
 
   if (loading) return <CircularProgress />;
@@ -128,13 +205,7 @@ function RunTab({ selectedProcess, selectedRun }) {
           Subprocesses
         </Typography>
         <Box sx={{ height: 300, width: "100%" }}>
-          <DataGrid
-            rows={subprocessesRows}
-            columns={subprocessesColumns}
-            pageSize={5}
-            rowsPerPageOptions={[5, 10]}
-            pagination
-          />
+          <DataGrid rows={subprocessesRows} columns={subprocessesColumns} />
         </Box>
       </Box>
       <Box>
@@ -142,13 +213,7 @@ function RunTab({ selectedProcess, selectedRun }) {
           Channels
         </Typography>
         <Box sx={{ height: 300, width: "100%" }}>
-          <DataGrid
-            rows={channelsRows}
-            columns={channelsColumns}
-            pageSize={5}
-            rowsPerPageOptions={[5, 10]}
-            pagination
-          />
+          <DataGrid rows={channelsRows} columns={channelsColumns} />
         </Box>
       </Box>
     </Box>

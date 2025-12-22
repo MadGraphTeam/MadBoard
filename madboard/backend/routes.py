@@ -112,4 +112,4 @@ def get_run_info(process_name, run_name):
         return {"error": "Info file not found"}, 404
     with open(info_file, "r") as f:
         info = f.read()
-    return {"info": info}, 200
+    return info, 200
