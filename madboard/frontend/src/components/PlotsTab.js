@@ -41,11 +41,21 @@ function PlotsTab({ selectedRun, runsData }) {
       const numBins = values.length;
       const step = (max - min) / numBins;
 
-      const chartData = values.map((val, index) => ({
-        x: min + index * step,
-        y: val,
-        yError: [val - errors[index], val + errors[index]],
-      }));
+      const chartData = [
+        ...values.map((val, index) => ({
+          x: min + index * step,
+          y: val,
+          yError: [val - errors[index], val + errors[index]],
+        })),
+        {
+          x: min + numBins * step,
+          y: values[numBins - 1],
+          yError: [
+            values[numBins - 1] - errors[numBins - 1],
+            values[numBins - 1] + errors[numBins - 1],
+          ],
+        },
+      ];
 
       data[name] = { chartData, min, max };
     });
@@ -116,6 +126,7 @@ function PlotsTab({ selectedRun, runsData }) {
                   <CartesianGrid opacity={0.5} />
                   <XAxis
                     dataKey="x"
+                    domain={[chartData[0].x, chartData[chartData.length - 1].x]}
                     label={{
                       value: name,
                       position: "insideBottomRight",

@@ -114,9 +114,21 @@ function App({ isDarkMode, onThemeToggle }) {
       >
         <AppBar position="sticky" sx={{ top: 0, zIndex: 1200 }}>
           <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              MadBoard
-            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                flexGrow: 1,
+              }}
+            >
+              <img
+                src="/logo-dark.png"
+                alt="MadBoard Logo"
+                style={{ height: 40 }}
+              />
+              <Typography variant="h5">MadBoard</Typography>
+            </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography variant="body2">
                 {isDarkMode ? "🌙" : "☀️"}
