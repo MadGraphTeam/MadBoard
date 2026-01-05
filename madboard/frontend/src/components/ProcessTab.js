@@ -1,11 +1,29 @@
-import React, { useMemo } from "react";
-import { Box, CircularProgress, Alert, IconButton } from "@mui/material";
+import React, { useMemo, useState } from "react";
+import {
+  Box,
+  CircularProgress,
+  Alert,
+  IconButton,
+  Button,
+  Menu,
+  MenuItem,
+  Stack,
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
+import DownloadIcon from "@mui/icons-material/Download";
 import { formatWithError, formatSIPrefix } from "../utils/formatting";
 
-function ProcessTab({ selectedProcess, onSelectRun, runsData }) {
+function ProcessTab({
+  selectedProcess,
+  onSelectRun,
+  runsData,
+  onRefreshProcess,
+}) {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [downloadMenuRun, setDownMenuRun] = useState(null);
+
   const rows = useMemo(() => {
     return Object.entries(runsData).map((entry, index) => {
       const [runName, runInfo] = entry;
@@ -16,6 +34,7 @@ function ProcessTab({ selectedProcess, onSelectRun, runsData }) {
         crossSection: formatWithError(process.mean || 0, process.error || 0),
         unweightedEvents: formatSIPrefix(process.count_unweighted || 0),
         status: runInfo.status || "unknown",
+        files: runInfo.files || [],
       };
     });
   }, [runsData]);
@@ -32,11 +51,73 @@ function ProcessTab({ selectedProcess, onSelectRun, runsData }) {
           { method: "DELETE" },
         );
         if (!response.ok) throw new Error("Failed to delete run");
-        // Trigger a refresh by notifying the parent
-        window.location.reload();
+        // Refresh the current process instead of reloading the whole page
+        if (onRefreshProcess) {
+          onRefreshProcess();
+        }
       } catch (err) {
         console.error("Error deleting run:", err);
         alert("Failed to delete run");
+      }
+    }
+  };
+
+  const handleDownloadClick = (event, runName, files) => {
+    setAnchorEl(event.currentTarget);
+    setDownMenuRun({ runName, files });
+  };
+
+  const handleDownloadFile = (runName, filename) => {
+    const link = document.createElement("a");
+    link.href = `/api/processes/${selectedProcess}/runs/${runName}/download/${filename}`;
+    link.click();
+    setAnchorEl(null);
+    setDownMenuRun(null);
+  };
+
+  const handleDeleteProcess = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete the entire process "${selectedProcess}"? This cannot be undone.`,
+      )
+    ) {
+      try {
+        const response = await fetch(`/api/processes/${selectedProcess}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) throw new Error("Failed to delete process");
+        // Reload the entire app to return to process list
+        window.location.reload();
+      } catch (err) {
+        console.error("Error deleting process:", err);
+        alert("Failed to delete process");
+      }
+    }
+  };
+
+  const handleDeleteAllRuns = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete all runs in this process? This cannot be undone.`,
+      )
+    ) {
+      try {
+        // Delete each run
+        for (const runEntry of Object.entries(runsData)) {
+          const runName = runEntry[0];
+          const response = await fetch(
+            `/api/processes/${selectedProcess}/runs/${runName}`,
+            { method: "DELETE" },
+          );
+          if (!response.ok) throw new Error(`Failed to delete run ${runName}`);
+        }
+        // Refresh after all deletions
+        if (onRefreshProcess) {
+          onRefreshProcess();
+        }
+      } catch (err) {
+        console.error("Error deleting runs:", err);
+        alert("Failed to delete runs");
       }
     }
   };
@@ -67,8 +148,8 @@ function ProcessTab({ selectedProcess, onSelectRun, runsData }) {
     {
       field: "actions",
       headerName: "Actions",
-      flex: 0.5,
-      minWidth: 100,
+      flex: 0.7,
+      minWidth: 140,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
@@ -87,6 +168,18 @@ function ProcessTab({ selectedProcess, onSelectRun, runsData }) {
           >
             <VisibilityIcon fontSize="small" />
           </IconButton>
+          {params.row.files && params.row.files.length > 0 && (
+            <IconButton
+              size="small"
+              onClick={(e) =>
+                handleDownloadClick(e, params.row.run, params.row.files)
+              }
+              title="Download files"
+              color="primary"
+            >
+              <DownloadIcon fontSize="small" />
+            </IconButton>
+          )}
           <IconButton
             size="small"
             onClick={() => handleDeleteRun(params.row.run)}
@@ -105,8 +198,47 @@ function ProcessTab({ selectedProcess, onSelectRun, runsData }) {
   }
 
   return (
-    <Box sx={{ height: 400, width: "100%" }}>
-      <DataGrid rows={rows} columns={columns} />
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <Box sx={{ height: 400, width: "100%" }}>
+        <DataGrid rows={rows} columns={columns} />
+      </Box>
+
+      {/* Download menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+      >
+        {downloadMenuRun &&
+          downloadMenuRun.files.map((file) => (
+            <MenuItem
+              key={file}
+              onClick={() => handleDownloadFile(downloadMenuRun.runName, file)}
+            >
+              {file}
+            </MenuItem>
+          ))}
+      </Menu>
+
+      {/* Process management buttons */}
+      <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={handleDeleteAllRuns}
+          size="small"
+        >
+          Delete All Runs
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={handleDeleteProcess}
+          size="small"
+        >
+          Delete Process
+        </Button>
+      </Stack>
     </Box>
   );
 }

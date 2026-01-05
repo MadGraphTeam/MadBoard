@@ -4,7 +4,7 @@ import json
 import os
 import shutil
 
-from flask import Blueprint, request
+from flask import Blueprint, request, send_file
 
 api_bp = Blueprint("api", __name__)
 
@@ -32,6 +32,18 @@ def get_processes():
             }
         )
     return {"processes": processes}, 200
+
+
+@api_bp.route("/processes/<process_name>", methods=["DELETE"])
+def delete_process(process_name):
+    """Delete a specific process."""
+    if not process_name:
+        return {"error": "Process name is required"}, 400
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+    shutil.rmtree(process_dir)
+    return {"message": "Process deleted successfully"}, 200
 
 
 @api_bp.route("/processes/<process_name>/cards", methods=["GET"])
@@ -65,6 +77,21 @@ def get_card(process_name, card_name):
     with open(card_path, "r") as f:
         content = f.read()
     return {"content": content}, 200
+
+
+@api_bp.route("/processes/<process_name>/cards/<card_name>/download", methods=["GET"])
+def download_card(process_name, card_name):
+    """Download a specific card for a process."""
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+    cards_dir = os.path.join(process_dir, "Cards")
+    if not os.path.isdir(cards_dir):
+        return {"error": "Cards directory not found"}, 404
+    card_path = os.path.join(cards_dir, card_name)
+    if not os.path.isfile(card_path):
+        return {"error": "Card not found"}, 404
+    return send_file(os.path.abspath(card_path), as_attachment=True)
 
 
 @api_bp.route("/processes/<process_name>/cards/<card_name>", methods=["POST"])
@@ -102,10 +129,16 @@ def get_runs(process_name):
                     info = json.load(f)
             else:
                 info = {"status": "unknown"}
+            files = [
+                file_entry.name
+                for file_entry in os.scandir(run_dir)
+                if file_entry.is_file()
+            ]
             runs.append(
                 {
+                    **info,
                     "name": run_dir.name,
-                    "info": info,
+                    "files": files,
                 }
             )
     return {"runs": sorted(runs, key=lambda run: run["name"])}, 200
@@ -139,6 +172,26 @@ def get_run_info(process_name, run_name):
     info_file = os.path.join(run_dir, "info.json")
     if not os.path.isfile(info_file):
         return {"status": "unknown"}, 200
+    files = [
+        file_entry.name for file_entry in os.scandir(run_dir) if file_entry.is_file()
+    ]
     with open(info_file, "r") as f:
-        info = f.read()
-    return info, 200
+        info = json.load(f)
+    return {**info, "files": files}, 200
+
+
+@api_bp.route(
+    "/processes/<process_name>/runs/<run_name>/download/<filename>", methods=["GET"]
+)
+def download_run_file(process_name, run_name, filename):
+    """Download a specific file from a run."""
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+    run_dir = os.path.join(process_dir, "Events", run_name)
+    if not os.path.isdir(run_dir):
+        return {"error": "Run not found"}, 404
+    file_path = os.path.join(run_dir, filename)
+    if not os.path.isfile(file_path):
+        return {"error": "File not found"}, 404
+    return send_file(os.path.abspath(file_path), as_attachment=True)

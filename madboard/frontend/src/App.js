@@ -38,6 +38,25 @@ function App({ isDarkMode, onThemeToggle }) {
     setSelectedTab(1);
   };
 
+  const handleRefreshProcess = async () => {
+    // Refresh the current process's runs without full page reload
+    if (!selectedProcess) return;
+    try {
+      const response = await fetch(`/api/processes/${selectedProcess}/runs`);
+      if (!response.ok) throw new Error("Failed to fetch runs");
+      const data = await response.json();
+
+      const newRunsData = {};
+      for (const runObj of data.runs) {
+        newRunsData[runObj.name] = runObj;
+      }
+      setRunsData(newRunsData);
+      runsDataRef.current = newRunsData;
+    } catch (err) {
+      console.error("Failed to refresh process:", err);
+    }
+  };
+
   // Keep ref in sync with state
   useEffect(() => {
     runsDataRef.current = runsData;
@@ -56,8 +75,9 @@ function App({ isDarkMode, onThemeToggle }) {
         // New API returns a list of objects with name and info
         const newRunsData = {};
         for (const runObj of data.runs) {
-          newRunsData[runObj.name] = runObj.info;
+          newRunsData[runObj.name] = runObj;
         }
+        console.log("Fetched runs data:", newRunsData);
         setRunsData(newRunsData);
       } catch (err) {
         console.error("Failed to fetch runs:", err);
@@ -162,6 +182,7 @@ function App({ isDarkMode, onThemeToggle }) {
             selectedTab={selectedTab}
             isDarkMode={isDarkMode}
             runsData={runsData}
+            onRefreshProcess={handleRefreshProcess}
           />
         </Box>
       </Box>

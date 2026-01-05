@@ -12,6 +12,7 @@ function MainContent({
   selectedTab,
   isDarkMode,
   runsData,
+  onRefreshProcess,
 }) {
   if (!selectedProcess) {
     return (
@@ -37,6 +38,7 @@ function MainContent({
           selectedProcess={selectedProcess}
           onSelectRun={onSelectRun}
           runsData={runsData}
+          onRefreshProcess={onRefreshProcess}
         />
       )}
       {selectedTab === 1 && selectedRun && (

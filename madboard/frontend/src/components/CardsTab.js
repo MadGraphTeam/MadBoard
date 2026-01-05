@@ -11,8 +11,10 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Box,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
+import DownloadIcon from "@mui/icons-material/Download";
 import Editor from "@monaco-editor/react";
 
 function CardsTab({ selectedProcess, isDarkMode }) {
@@ -85,6 +87,12 @@ function CardsTab({ selectedProcess, isDarkMode }) {
     setCardContent("");
   };
 
+  const handleDownloadCard = (cardName) => {
+    const link = document.createElement("a");
+    link.href = `/api/processes/${selectedProcess}/cards/${cardName}/download`;
+    link.click();
+  };
+
   if (loading) return <CircularProgress />;
   if (error) return <Alert severity="error">{error}</Alert>;
 
@@ -117,9 +125,22 @@ function CardsTab({ selectedProcess, isDarkMode }) {
         <ListItem
           key={card}
           secondaryAction={
-            <IconButton onClick={() => handleEdit(card)} color="primary">
-              <EditIcon />
-            </IconButton>
+            <Box sx={{ display: "flex", gap: 0.5 }}>
+              <IconButton
+                onClick={() => handleDownloadCard(card)}
+                color="primary"
+                title="Download card"
+              >
+                <DownloadIcon />
+              </IconButton>
+              <IconButton
+                onClick={() => handleEdit(card)}
+                color="primary"
+                title="Edit card"
+              >
+                <EditIcon />
+              </IconButton>
+            </Box>
           }
         >
           <ListItemText primary={card} />
