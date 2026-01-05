@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
   Box,
-  CircularProgress,
-  Alert,
   IconButton,
   Button,
   Menu,
@@ -18,6 +16,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { formatWithError, formatSIPrefix } from "../utils/formatting";
 
 function ProcessTab({
@@ -26,6 +25,7 @@ function ProcessTab({
   onSelectRunAndNavigate,
   runsData,
   onRefreshProcess,
+  onDeleteProcess,
 }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [downloadMenuRun, setDownMenuRun] = useState(null);
@@ -40,11 +40,32 @@ function ProcessTab({
     return Object.entries(runsData).map((entry, index) => {
       const [runName, runInfo] = entry;
       const process = runInfo.process || {};
+
+      // Format cross section with error, or use "-" if no data
+      let crossSection = "-";
+      if (
+        process.mean !== undefined &&
+        process.mean !== null &&
+        process.error !== undefined &&
+        process.error !== null
+      ) {
+        crossSection = formatWithError(process.mean, process.error);
+      }
+
+      // Format unweighted events, or use "-" if no data
+      let unweightedEvents = "-";
+      if (
+        process.count_unweighted !== undefined &&
+        process.count_unweighted !== null
+      ) {
+        unweightedEvents = formatSIPrefix(process.count_unweighted);
+      }
+
       return {
         id: index,
         run: runName,
-        crossSection: formatWithError(process.mean || 0, process.error || 0),
-        unweightedEvents: formatSIPrefix(process.count_unweighted || 0),
+        crossSection,
+        unweightedEvents,
         status: runInfo.status || "unknown",
         files: runInfo.files || [],
       };
@@ -115,7 +136,9 @@ function ProcessTab({
             method: "DELETE",
           });
           if (!response.ok) throw new Error("Failed to delete process");
-          window.location.reload();
+          if (onDeleteProcess) {
+            onDeleteProcess();
+          }
         } catch (err) {
           console.error("Error deleting process:", err);
           alert("Failed to delete process");
@@ -292,6 +315,14 @@ function ProcessTab({
 
       {/* Process management buttons */}
       <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+        <Button
+          variant="outlined"
+          onClick={onRefreshProcess}
+          size="small"
+          startIcon={<RefreshIcon />}
+        >
+          Reload
+        </Button>
         <Button
           variant="outlined"
           color="error"

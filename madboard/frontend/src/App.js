@@ -69,6 +69,16 @@ function App({ isDarkMode, onThemeToggle }) {
     }
   };
 
+  const handleDeleteProcess = async () => {
+    // Reset process and run selection without full page reload
+    setSelectedProcess(null);
+    setSelectedRun(null);
+    setSelectedTab(0);
+    setRunsData({});
+    // Refresh sidebar to update process list
+    window.location.reload();
+  };
+
   // Keep ref in sync with state
   useEffect(() => {
     runsDataRef.current = runsData;
@@ -196,6 +206,7 @@ function App({ isDarkMode, onThemeToggle }) {
             isDarkMode={isDarkMode}
             runsData={runsData}
             onRefreshProcess={handleRefreshProcess}
+            onDeleteProcess={handleDeleteProcess}
           />
         </Box>
       </Box>

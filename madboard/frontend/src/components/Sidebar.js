@@ -19,7 +19,6 @@ import FolderIcon from "@mui/icons-material/Folder";
 import FileIcon from "@mui/icons-material/Description";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 
 const DRAWER_WIDTH = 360;
 
