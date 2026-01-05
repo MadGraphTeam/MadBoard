@@ -8,6 +8,11 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -23,6 +28,12 @@ function ProcessTab({
 }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [downloadMenuRun, setDownMenuRun] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
 
   const rows = useMemo(() => {
     return Object.entries(runsData).map((entry, index) => {
@@ -43,23 +54,28 @@ function ProcessTab({
     onSelectRun(runName);
   };
 
-  const handleDeleteRun = async (runName) => {
-    if (window.confirm(`Are you sure you want to delete run "${runName}"?`)) {
-      try {
-        const response = await fetch(
-          `/api/processes/${selectedProcess}/runs/${runName}`,
-          { method: "DELETE" },
-        );
-        if (!response.ok) throw new Error("Failed to delete run");
-        // Refresh the current process instead of reloading the whole page
-        if (onRefreshProcess) {
-          onRefreshProcess();
+  const handleDeleteRun = (runName) => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Run",
+      message: `Are you sure you want to delete run "${runName}"?`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(
+            `/api/processes/${selectedProcess}/runs/${runName}`,
+            { method: "DELETE" },
+          );
+          if (!response.ok) throw new Error("Failed to delete run");
+          if (onRefreshProcess) {
+            onRefreshProcess();
+          }
+        } catch (err) {
+          console.error("Error deleting run:", err);
+          alert("Failed to delete run");
         }
-      } catch (err) {
-        console.error("Error deleting run:", err);
-        alert("Failed to delete run");
-      }
-    }
+        setConfirmDialog({ ...confirmDialog, open: false });
+      },
+    });
   };
 
   const handleDownloadClick = (event, runName, files) => {
@@ -75,51 +91,53 @@ function ProcessTab({
     setDownMenuRun(null);
   };
 
-  const handleDeleteProcess = async () => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete the entire process "${selectedProcess}"? This cannot be undone.`,
-      )
-    ) {
-      try {
-        const response = await fetch(`/api/processes/${selectedProcess}`, {
-          method: "DELETE",
-        });
-        if (!response.ok) throw new Error("Failed to delete process");
-        // Reload the entire app to return to process list
-        window.location.reload();
-      } catch (err) {
-        console.error("Error deleting process:", err);
-        alert("Failed to delete process");
-      }
-    }
+  const handleDeleteProcess = () => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete Process",
+      message: `Are you sure you want to delete the entire process "${selectedProcess}"? This cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/processes/${selectedProcess}`, {
+            method: "DELETE",
+          });
+          if (!response.ok) throw new Error("Failed to delete process");
+          window.location.reload();
+        } catch (err) {
+          console.error("Error deleting process:", err);
+          alert("Failed to delete process");
+        }
+      },
+    });
   };
 
-  const handleDeleteAllRuns = async () => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete all runs in this process? This cannot be undone.`,
-      )
-    ) {
-      try {
-        // Delete each run
-        for (const runEntry of Object.entries(runsData)) {
-          const runName = runEntry[0];
-          const response = await fetch(
-            `/api/processes/${selectedProcess}/runs/${runName}`,
-            { method: "DELETE" },
-          );
-          if (!response.ok) throw new Error(`Failed to delete run ${runName}`);
+  const handleDeleteAllRuns = () => {
+    setConfirmDialog({
+      open: true,
+      title: "Delete All Runs",
+      message:
+        "Are you sure you want to delete all runs in this process? This cannot be undone.",
+      onConfirm: async () => {
+        try {
+          for (const runEntry of Object.entries(runsData)) {
+            const runName = runEntry[0];
+            const response = await fetch(
+              `/api/processes/${selectedProcess}/runs/${runName}`,
+              { method: "DELETE" },
+            );
+            if (!response.ok)
+              throw new Error(`Failed to delete run ${runName}`);
+          }
+          if (onRefreshProcess) {
+            onRefreshProcess();
+          }
+        } catch (err) {
+          console.error("Error deleting runs:", err);
+          alert("Failed to delete runs");
         }
-        // Refresh after all deletions
-        if (onRefreshProcess) {
-          onRefreshProcess();
-        }
-      } catch (err) {
-        console.error("Error deleting runs:", err);
-        alert("Failed to delete runs");
-      }
-    }
+        setConfirmDialog({ ...confirmDialog, open: false });
+      },
+    });
   };
 
   const columns = [
@@ -168,18 +186,17 @@ function ProcessTab({
           >
             <VisibilityIcon fontSize="small" />
           </IconButton>
-          {params.row.files && params.row.files.length > 0 && (
-            <IconButton
-              size="small"
-              onClick={(e) =>
-                handleDownloadClick(e, params.row.run, params.row.files)
-              }
-              title="Download files"
-              color="primary"
-            >
-              <DownloadIcon fontSize="small" />
-            </IconButton>
-          )}
+          <IconButton
+            size="small"
+            onClick={(e) =>
+              handleDownloadClick(e, params.row.run, params.row.files)
+            }
+            title="Download files"
+            color="primary"
+            disabled={!params.row.files || params.row.files.length === 0}
+          >
+            <DownloadIcon fontSize="small" />
+          </IconButton>
           <IconButton
             size="small"
             onClick={() => handleDeleteRun(params.row.run)}
@@ -193,14 +210,29 @@ function ProcessTab({
     },
   ];
 
-  if (Object.keys(runsData).length === 0) {
-    return <CircularProgress />;
-  }
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <Box sx={{ height: 400, width: "100%" }}>
-        <DataGrid rows={rows} columns={columns} />
+        {Object.keys(runsData).length === 0 ? (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100%",
+              backgroundColor: "background.paper",
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Typography variant="body1" color="text.secondary">
+              No runs found
+            </Typography>
+          </Box>
+        ) : (
+          <DataGrid rows={rows} columns={columns} />
+        )}
       </Box>
 
       {/* Download menu */}
@@ -220,18 +252,44 @@ function ProcessTab({
           ))}
       </Menu>
 
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
+      >
+        <DialogTitle>{confirmDialog.title}</DialogTitle>
+        <DialogContent>
+          <Typography>{confirmDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDialog.onConfirm}
+            variant="contained"
+            color="error"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Process management buttons */}
       <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
         <Button
-          variant="contained"
+          variant="outlined"
           color="error"
           onClick={handleDeleteAllRuns}
           size="small"
+          disabled={Object.keys(runsData).length === 0}
         >
           Delete All Runs
         </Button>
         <Button
-          variant="contained"
+          variant="outlined"
           color="error"
           onClick={handleDeleteProcess}
           size="small"

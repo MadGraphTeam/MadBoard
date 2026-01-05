@@ -98,24 +98,60 @@ function CardsTab({ selectedProcess, isDarkMode }) {
 
   if (editingCard) {
     return (
-      <Dialog open={true} onClose={handleCancel} maxWidth="md" fullWidth>
-        <DialogTitle>Edit {editingCard}</DialogTitle>
-        <DialogContent sx={{ p: 2 }}>
-          <Editor
-            height="400px"
-            defaultLanguage="python"
-            value={cardContent}
-            onChange={(value) => setCardContent(value || "")}
-            theme={isDarkMode ? "vs-dark" : "vs-light"}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancel}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <>
+        {/* Card list in background */}
+        <List>
+          {cards.map((card) => (
+            <ListItem
+              key={card}
+              secondaryAction={
+                <Box sx={{ display: "flex", gap: 0.5 }}>
+                  <IconButton
+                    onClick={() => handleDownloadCard(card)}
+                    color="primary"
+                    title="Download card"
+                  >
+                    <DownloadIcon />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => handleEdit(card)}
+                    color="primary"
+                    title="Edit card"
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </Box>
+              }
+            >
+              <ListItemText primary={card} />
+            </ListItem>
+          ))}
+        </List>
+
+        {/* Modal dialog on top */}
+        <Dialog open={true} onClose={handleCancel} maxWidth="sm" fullWidth>
+          <DialogTitle>Edit {editingCard}</DialogTitle>
+          <DialogContent sx={{ p: 2 }}>
+            <Editor
+              height="400px"
+              defaultLanguage="python"
+              value={cardContent}
+              onChange={(value) => setCardContent(value || "")}
+              theme={isDarkMode ? "vs-dark" : "vs-light"}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCancel}>Cancel</Button>
+            <Button
+              onClick={handleSave}
+              variant="contained"
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </>
     );
   }
 
