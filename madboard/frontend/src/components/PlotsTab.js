@@ -79,17 +79,32 @@ function PlotsTab({ selectedRun, runsData }) {
   const [enabledRuns, setEnabledRuns] = useState(null); // null means use default
   const allRuns = useMemo(() => Object.keys(runsData), [runsData]);
 
+  // Collect all histograms from all runs to determine which runs have histograms
+  const runsWithHistograms = useMemo(() => {
+    const runs = new Set();
+    Object.entries(runsData).forEach(([runName, runInfo]) => {
+      if (runInfo && runInfo.histograms && runInfo.histograms.length > 0) {
+        runs.add(runName);
+      }
+    });
+    return Array.from(runs);
+  }, [runsData]);
+
   // Determine which runs to show
   const runsToShow = useMemo(() => {
     if (enabledRuns !== null) {
       return enabledRuns; // User has made a selection
     }
-    // Default behavior: show selected run if available, otherwise all runs
-    if (selectedRun && runsData[selectedRun]) {
+    // Default behavior: show selected run if available and has histograms, otherwise all runs with histograms
+    if (
+      selectedRun &&
+      runsData[selectedRun] &&
+      runsWithHistograms.includes(selectedRun)
+    ) {
       return [selectedRun];
     }
-    return Object.keys(runsData);
-  }, [enabledRuns, selectedRun, runsData]);
+    return runsWithHistograms;
+  }, [enabledRuns, selectedRun, runsData, runsWithHistograms]);
 
   // Create a fixed color mapping for all runs
   const runColorMap = useMemo(() => {
@@ -189,7 +204,15 @@ function PlotsTab({ selectedRun, runsData }) {
     });
   };
 
-  if (allRuns.length === 0) {
+  const handleSelectAll = () => {
+    setEnabledRuns(runsWithHistograms);
+  };
+
+  const handleDeselectAll = () => {
+    setEnabledRuns([]);
+  };
+
+  if (runsWithHistograms.length === 0) {
     return (
       <Card>
         <CardContent>
@@ -207,11 +230,28 @@ function PlotsTab({ selectedRun, runsData }) {
       {/* Run selection checkboxes */}
       <Card>
         <CardContent>
-          <Typography variant="subtitle1" sx={{ mb: 2 }}>
-            Select runs to display:
-          </Typography>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 2 }}
+          >
+            <Typography variant="subtitle1">Select runs to display:</Typography>
+            <Stack direction="row" spacing={1}>
+              <Button size="small" variant="outlined" onClick={handleSelectAll}>
+                Select all
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleDeselectAll}
+              >
+                Deselect all
+              </Button>
+            </Stack>
+          </Stack>
           <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap" }}>
-            {allRuns.map((runName) => (
+            {runsWithHistograms.map((runName) => (
               <FormControlLabel
                 key={runName}
                 control={

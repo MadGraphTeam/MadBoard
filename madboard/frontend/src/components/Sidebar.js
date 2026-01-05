@@ -87,14 +87,6 @@ function Sidebar({
     }
   };
 
-  const expandAll = () => {
-    const newExpandedItems = {};
-    processes.forEach((process) => {
-      newExpandedItems[process.name] = true;
-    });
-    setExpandedItems(newExpandedItems);
-  };
-
   const collapseAll = () => {
     setExpandedItems({});
   };
@@ -141,9 +133,6 @@ function Sidebar({
             </IconButton>
             <IconButton onClick={collapseAll} size="small" title="Collapse all">
               <UnfoldLessIcon />
-            </IconButton>
-            <IconButton onClick={expandAll} size="small" title="Expand all">
-              <UnfoldMoreIcon />
             </IconButton>
             <IconButton onClick={toggleDrawer} size="small" title="Toggle menu">
               <MenuIcon />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Box,
   AppBar,
@@ -19,6 +19,14 @@ function App({ isDarkMode, onThemeToggle }) {
   const [runsData, setRunsData] = useState({}); // Map of run name to run info
   const runsDataRef = useRef({});
 
+  // Check if any run has histograms
+  const hasPlotsAvailable = useMemo(() => {
+    return Object.values(runsData).some(
+      (runInfo) =>
+        runInfo && runInfo.histograms && runInfo.histograms.length > 0,
+    );
+  }, [runsData]);
+
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
   };
@@ -34,6 +42,10 @@ function App({ isDarkMode, onThemeToggle }) {
   };
 
   const handleSelectRun = (run) => {
+    setSelectedRun(run);
+  };
+
+  const handleSelectRunAndNavigate = (run) => {
     setSelectedRun(run);
     setSelectedTab(1);
   };
@@ -170,7 +182,7 @@ function App({ isDarkMode, onThemeToggle }) {
               <Tab label="Process" />
               {selectedRun && <Tab label="Run" />}
               <Tab label="Cards" />
-              <Tab label="Plots" />
+              {hasPlotsAvailable && <Tab label="Plots" />}
             </Tabs>
           )}
         </AppBar>
@@ -179,6 +191,7 @@ function App({ isDarkMode, onThemeToggle }) {
             selectedProcess={selectedProcess}
             selectedRun={selectedRun}
             onSelectRun={handleSelectRun}
+            onSelectRunAndNavigate={handleSelectRunAndNavigate}
             selectedTab={selectedTab}
             isDarkMode={isDarkMode}
             runsData={runsData}

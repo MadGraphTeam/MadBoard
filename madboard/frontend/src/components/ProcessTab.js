@@ -23,6 +23,7 @@ import { formatWithError, formatSIPrefix } from "../utils/formatting";
 function ProcessTab({
   selectedProcess,
   onSelectRun,
+  onSelectRunAndNavigate,
   runsData,
   onRefreshProcess,
 }) {
@@ -51,7 +52,15 @@ function ProcessTab({
   }, [runsData]);
 
   const handleViewRun = (runName) => {
-    onSelectRun(runName);
+    if (onSelectRunAndNavigate) {
+      onSelectRunAndNavigate(runName);
+    } else {
+      onSelectRun(runName);
+    }
+  };
+
+  const handleRowClick = (params) => {
+    onSelectRun(params.row.run);
   };
 
   const handleDeleteRun = (runName) => {
@@ -66,6 +75,10 @@ function ProcessTab({
             { method: "DELETE" },
           );
           if (!response.ok) throw new Error("Failed to delete run");
+          // Reset selected run if the deleted run was selected
+          if (onSelectRun && runName === runsData[runName]?.name) {
+            onSelectRun(null);
+          }
           if (onRefreshProcess) {
             onRefreshProcess();
           }
@@ -231,7 +244,7 @@ function ProcessTab({
             </Typography>
           </Box>
         ) : (
-          <DataGrid rows={rows} columns={columns} />
+          <DataGrid rows={rows} columns={columns} onRowClick={handleRowClick} />
         )}
       </Box>
 

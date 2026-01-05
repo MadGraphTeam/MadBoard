@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { useMemo } from "react";
 import ProcessTab from "./ProcessTab";
 import RunTab from "./RunTab";
 import CardsTab from "./CardsTab";
@@ -9,11 +10,20 @@ function MainContent({
   selectedProcess,
   selectedRun,
   onSelectRun,
+  onSelectRunAndNavigate,
   selectedTab,
   isDarkMode,
   runsData,
   onRefreshProcess,
 }) {
+  // Check if any run has histograms
+  const hasPlotsAvailable = useMemo(() => {
+    return Object.values(runsData).some(
+      (runInfo) =>
+        runInfo && runInfo.histograms && runInfo.histograms.length > 0,
+    );
+  }, [runsData]);
+
   if (!selectedProcess) {
     return (
       <Box
@@ -37,6 +47,7 @@ function MainContent({
         <ProcessTab
           selectedProcess={selectedProcess}
           onSelectRun={onSelectRun}
+          onSelectRunAndNavigate={onSelectRunAndNavigate}
           runsData={runsData}
           onRefreshProcess={onRefreshProcess}
         />
@@ -51,9 +62,10 @@ function MainContent({
       {(!selectedRun ? selectedTab === 1 : selectedTab === 2) && (
         <CardsTab selectedProcess={selectedProcess} isDarkMode={isDarkMode} />
       )}
-      {(!selectedRun ? selectedTab === 2 : selectedTab === 3) && (
-        <PlotsTab selectedRun={selectedRun} runsData={runsData} />
-      )}
+      {hasPlotsAvailable &&
+        (!selectedRun ? selectedTab === 2 : selectedTab === 3) && (
+          <PlotsTab selectedRun={selectedRun} runsData={runsData} />
+        )}
     </Box>
   );
 }
