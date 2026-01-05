@@ -49,10 +49,9 @@ function MainContent({
       {(!selectedRun ? selectedTab === 1 : selectedTab === 2) && (
         <CardsTab selectedProcess={selectedProcess} isDarkMode={isDarkMode} />
       )}
-      {(!selectedRun ? selectedTab === 2 : selectedTab === 3) &&
-        selectedRun && (
-          <PlotsTab selectedRun={selectedRun} runsData={runsData} />
-        )}
+      {(!selectedRun ? selectedTab === 2 : selectedTab === 3) && (
+        <PlotsTab selectedRun={selectedRun} runsData={runsData} />
+      )}
     </Box>
   );
 }
