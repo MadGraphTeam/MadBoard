@@ -82,52 +82,47 @@ function PlotsTab({ selectedRun, runsData }) {
     return histogramsByName;
   }, [runsToShow, runsData]);
 
-  // Transform histograms into chart data
+  // Transform histograms into separate chart data arrays per run
   const chartDataByName = useMemo(() => {
     const data = {};
 
     Object.entries(allHistogramsByName).forEach(([name, histogramList]) => {
-      const chartData = {};
+      // Create separate run data for each run
+      const runDataArrays = {};
 
-      histogramList.forEach(({ runName, runIndex, histogram }) => {
+      histogramList.forEach(({ runName, histogram }) => {
         const { min, max, bin_values, bin_errors } = histogram;
 
         // Exclude first and last entries
         const values = bin_values.slice(1, -1);
         const errors = bin_errors.slice(1, -1);
 
-        // Generate equally spaced x-axis values
+        // Generate equally spaced x-axis values for this run
         const numBins = values.length;
         const step = (max - min) / numBins;
 
-        // Create data points for this run
-        const runData = [
-          ...values.map((val, index) => ({
-            x: min + index * step,
-            [`y_${runName}`]: val,
-            [`yError_${runName}`]: [val - errors[index], val + errors[index]],
-          })),
-          {
-            x: min + numBins * step,
-            [`y_${runName}`]: values[numBins - 1],
-            [`yError_${runName}`]: [
-              values[numBins - 1] - errors[numBins - 1],
-              values[numBins - 1] + errors[numBins - 1],
-            ],
-          },
-        ];
+        // Create data points for this run with its own x values
+        const runData = values.map((val, index) => ({
+          x: min + index * step,
+          y: val,
+          yError: [val - errors[index], val + errors[index]],
+        }));
 
-        // Merge into chart data
-        runData.forEach((point, index) => {
-          if (!chartData[index]) {
-            chartData[index] = { x: point.x };
-          }
-          chartData[index] = { ...chartData[index], ...point };
+        // Add final point for step completeness
+        runData.push({
+          x: max,
+          y: values[numBins - 1],
+          yError: [
+            values[numBins - 1] - errors[numBins - 1],
+            values[numBins - 1] + errors[numBins - 1],
+          ],
         });
+
+        runDataArrays[runName] = runData;
       });
 
       data[name] = {
-        chartData: Object.values(chartData),
+        runDataArrays,
         histogramList,
       };
     });
@@ -193,29 +188,23 @@ function PlotsTab({ selectedRun, runsData }) {
 
       {/* Histogram charts */}
       {Object.entries(chartDataByName).map(
-        ([histogramName, { chartData, histogramList }]) => {
+        ([histogramName, { runDataArrays, histogramList }]) => {
           const scale = scales[histogramName] || "linear";
 
-          // Filter data for log scale
-          let displayData = chartData;
-          if (scale === "log") {
-            displayData = chartData.map((point) => {
-              const newPoint = { x: point.x };
-              Object.entries(point).forEach(([key, value]) => {
-                if (key === "x") return;
-                if (Array.isArray(value)) {
-                  newPoint[key] = [
-                    value[0] > 0 ? value[0] : null,
-                    value[1] > 0 ? value[1] : null,
-                  ];
-                } else {
-                  newPoint[key] = value > 0 ? value : null;
-                }
-              });
-              return newPoint;
-            });
-          }
-          console.log(displayData);
+          // Compute x-axis domain from all selected runs
+          let xMin = Infinity;
+          let xMax = -Infinity;
+          histogramList.forEach(({ runName }) => {
+            const data = runDataArrays[runName];
+            if (data && data.length > 0) {
+              const dataMin = Math.min(...data.map((point) => point.x));
+              const dataMax = Math.max(...data.map((point) => point.x));
+              xMin = Math.min(xMin, dataMin);
+              xMax = Math.max(xMax, dataMax);
+            }
+          });
+          const xDomain =
+            xMin !== Infinity && xMax !== -Infinity ? [xMin, xMax] : [0, 1];
 
           return (
             <Card key={histogramName}>
@@ -236,14 +225,11 @@ function PlotsTab({ selectedRun, runsData }) {
                   </Button>
                 </Stack>
                 <ResponsiveContainer width="100%" height={400}>
-                  <ComposedChart data={displayData}>
+                  <ComposedChart>
                     <CartesianGrid opacity={0.5} />
                     <XAxis
                       dataKey="x"
-                      domain={[
-                        displayData[0]?.x || 0,
-                        displayData[displayData.length - 1]?.x || 1,
-                      ]}
+                      domain={xDomain}
                       label={{
                         value: histogramName,
                         position: "insideBottomRight",
@@ -269,10 +255,28 @@ function PlotsTab({ selectedRun, runsData }) {
                     {/* Render error areas and lines for each run */}
                     {histogramList.map(({ runName }) => {
                       const color = runColorMap[runName];
+                      let displayData = runDataArrays[runName];
+
+                      // Replace non-positive values with null for log scale
+                      if (scale === "log") {
+                        displayData = displayData.map((point) => ({
+                          ...point,
+                          y: point.y > 0 ? point.y : null,
+                          yError: Array.isArray(point.yError)
+                            ? [
+                                point.yError[0] > 0 ? point.yError[0] : null,
+                                point.yError[1] > 0 ? point.yError[1] : null,
+                              ]
+                            : point.yError,
+                        }));
+                      }
+
                       return [
                         <Area
+                          key={`area_${runName}`}
                           type="stepAfter"
-                          dataKey={`yError_${runName}`}
+                          dataKey="yError"
+                          data={displayData}
                           stroke="none"
                           fill={color}
                           fillOpacity={0.2}
@@ -280,8 +284,10 @@ function PlotsTab({ selectedRun, runsData }) {
                           legendType="none"
                         />,
                         <Line
+                          key={`line_${runName}`}
                           type="stepAfter"
-                          dataKey={`y_${runName}`}
+                          dataKey="y"
+                          data={displayData}
                           stroke={color}
                           name={runName}
                           isAnimationActive={false}
