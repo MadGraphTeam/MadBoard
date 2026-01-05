@@ -21,6 +21,47 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Unicode superscript characters for exponents
+const SUPERSCRIPT_MAP = {
+  0: "⁰",
+  1: "¹",
+  2: "²",
+  3: "³",
+  4: "⁴",
+  5: "⁵",
+  6: "⁶",
+  7: "⁷",
+  8: "⁸",
+  9: "⁹",
+  "-": "⁻",
+};
+
+// Format number as mantissa · 10^exponent using unicode superscript
+function formatScientificTick(value) {
+  if (value === 0) return "0";
+
+  const exponent = Math.floor(Math.log10(Math.abs(value)));
+  const mantissa = value / Math.pow(10, exponent);
+
+  // Round mantissa to 2 decimal places
+  const roundedMantissa = Math.round(mantissa * 100) / 100;
+
+  // Format exponent with superscript
+  const exponentStr = exponent.toString();
+  const exponentSuperscript = exponentStr
+    .split("")
+    .map((char) => SUPERSCRIPT_MAP[char])
+    .join("");
+
+  // If mantissa is essentially 1, just show the exponent
+  if (Math.abs(roundedMantissa - 1) < 0.001) {
+    return "10" + exponentSuperscript;
+  }
+
+  // Otherwise show mantissa · 10^exponent
+  return `${roundedMantissa}⋅10${exponentSuperscript}`;
+}
+
 // Color palette for different runs
 const RUN_COLORS = [
   "#8884d8",
@@ -240,16 +281,15 @@ function PlotsTab({ selectedRun, runsData }) {
                     <YAxis
                       scale={scale}
                       domain={[scale === "log" ? "auto" : 0, "auto"]}
+                      tickFormatter={
+                        scale === "log" ? formatScientificTick : undefined
+                      }
                       label={{
-                        value: "Count",
+                        value: "Cross section (pb)",
                         angle: -90,
                         position: "insideLeft",
                       }}
                     />
-                    {/*<Tooltip
-                    formatter={(value) => (value !== null ? value.toFixed(4) : "N/A")}
-                    labelFormatter={(value) => `x: ${value.toFixed(2)}`}
-                  />*/}
                     <Legend />
 
                     {/* Render error areas and lines for each run */}
