@@ -129,7 +129,7 @@ function CardsTab({ selectedProcess, isDarkMode }) {
         </List>
 
         {/* Modal dialog on top */}
-        <Dialog open={true} onClose={handleCancel} maxWidth="sm" fullWidth>
+        <Dialog open={true} onClose={handleCancel} maxWidth="md" fullWidth>
           <DialogTitle>Edit {editingCard}</DialogTitle>
           <DialogContent sx={{ p: 2 }}>
             <Editor

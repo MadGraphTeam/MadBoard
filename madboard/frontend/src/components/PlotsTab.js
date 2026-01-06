@@ -159,17 +159,17 @@ function PlotsTab({ selectedRun, runsData }) {
         // Create data points for this run with its own x values
         const runData = values.map((val, index) => ({
           x: min + index * step,
-          y: val,
-          yError: [val - errors[index], val + errors[index]],
+          y: val / step,
+          yError: [(val - errors[index]) / step, (val + errors[index]) / step],
         }));
 
         // Add final point for step completeness
         runData.push({
           x: max,
-          y: values[numBins - 1],
+          y: values[numBins - 1] / step,
           yError: [
-            values[numBins - 1] - errors[numBins - 1],
-            values[numBins - 1] + errors[numBins - 1],
+            (values[numBins - 1] - errors[numBins - 1]) / step,
+            (values[numBins - 1] + errors[numBins - 1]) / step,
           ],
         });
 
