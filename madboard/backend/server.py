@@ -11,7 +11,7 @@ def open_browser(port=5000):
     """Open the frontend in the browser after a short delay."""
 
     def _open():
-        webbrowser.open(f"http://localhost:{port}")
+        webbrowser.open(f"http://127.0.0.1:{port}")
 
     timer = Timer(1.0, _open)
     timer.daemon = True
