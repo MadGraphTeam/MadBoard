@@ -31,23 +31,6 @@ This will:
 - Start the Flask backend server
 - Automatically open the browser to `http://localhost:5000`
 
-## Production Build
-
-To build the complete package:
-
-```bash
-python -m madboard.build
-```
-
-This builds the frontend and copies it to the backend's static directory.
-
-Then install and run:
-
-```bash
-pip install .
-madboard
-```
-
 ## Project Structure
 
 ```

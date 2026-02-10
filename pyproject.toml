@@ -47,7 +47,6 @@ include-package-data = true
 [tool.setuptools.package-data]
 madboard = [
     "frontend/build/**/*",
-    "frontend/public/**/*",
 ]
 
 [tool.black]
