@@ -6,8 +6,11 @@ import {
   Tab,
   Tabs,
   Typography,
-  Switch,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
 import Layout from "./components/Layout";
 import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
@@ -189,16 +192,15 @@ function App({ isDarkMode, onThemeToggle }) {
               />
               <Typography variant="h5">MadBoard</Typography>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="body2">
-                {isDarkMode ? "🌙" : "☀️"}
-              </Typography>
-              <Switch
-                checked={isDarkMode}
-                onChange={onThemeToggle}
-                color="default"
-              />
-            </Box>
+            <Tooltip
+              title={
+                isDarkMode ? "Switch to light mode" : "Switch to dark mode"
+              }
+            >
+              <IconButton onClick={onThemeToggle} color="inherit">
+                {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
+              </IconButton>
+            </Tooltip>
           </Toolbar>
           {selectedProcess && (
             <Tabs
