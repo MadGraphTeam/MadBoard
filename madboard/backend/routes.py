@@ -195,3 +195,37 @@ def download_run_file(process_name, run_name, filename):
     if not os.path.isfile(file_path):
         return {"error": "File not found"}, 404
     return send_file(os.path.abspath(file_path), as_attachment=True)
+
+
+@api_bp.route("/processes/<process_name>/subprocesses", methods=["GET"])
+def get_subprocesses(process_name):
+    """List subprocesses that have diagrams.json."""
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+    subprocesses_dir = os.path.join(process_dir, "SubProcesses")
+    if not os.path.isdir(subprocesses_dir):
+        return {"subprocesses": []}, 200
+    names = []
+    for entry in sorted(os.scandir(subprocesses_dir), key=lambda e: e.name):
+        if entry.is_dir() and os.path.isfile(os.path.join(entry.path, "diagrams.json")):
+            names.append(entry.name)
+    return {"subprocesses": names}, 200
+
+
+@api_bp.route(
+    "/processes/<process_name>/subprocesses/<subproc_name>/diagrams", methods=["GET"]
+)
+def get_subprocess_diagrams(process_name, subproc_name):
+    """Return diagrams.json for a subprocess."""
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+    diagrams_path = os.path.join(
+        process_dir, "SubProcesses", subproc_name, "diagrams.json"
+    )
+    if not os.path.isfile(diagrams_path):
+        return {"error": "diagrams.json not found"}, 404
+    with open(diagrams_path, "r") as f:
+        diagrams = json.load(f)
+    return {"diagrams": diagrams}, 200

@@ -11,6 +11,7 @@ import {
 import Layout from "./components/Layout";
 import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
+import DiagramsTab from "./components/DiagramsTab";
 
 function App({ isDarkMode, onThemeToggle }) {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -18,6 +19,7 @@ function App({ isDarkMode, onThemeToggle }) {
   const [selectedRun, setSelectedRun] = useState(null);
   const [runsData, setRunsData] = useState({}); // Map of run name to run info
   const runsDataRef = useRef({});
+  const [subprocesses, setSubprocesses] = useState([]);
 
   // Check if any run has histograms
   const hasPlotsAvailable = useMemo(() => {
@@ -26,6 +28,8 @@ function App({ isDarkMode, onThemeToggle }) {
         runInfo && runInfo.histograms && runInfo.histograms.length > 0,
     );
   }, [runsData]);
+
+  const hasDiagramsAvailable = subprocesses.length > 0;
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
@@ -38,6 +42,7 @@ function App({ isDarkMode, onThemeToggle }) {
       setSelectedRun(null);
       setSelectedTab(0);
       setRunsData({});
+      setSubprocesses([]);
     }
   };
 
@@ -83,6 +88,15 @@ function App({ isDarkMode, onThemeToggle }) {
   useEffect(() => {
     runsDataRef.current = runsData;
   }, [runsData]);
+
+  // Fetch subprocesses with diagrams for the selected process
+  useEffect(() => {
+    if (!selectedProcess) return;
+    fetch(`/api/processes/${selectedProcess}/subprocesses`)
+      .then((res) => res.json())
+      .then((data) => setSubprocesses(data.subprocesses || []))
+      .catch(() => setSubprocesses([]));
+  }, [selectedProcess]);
 
   // Fetch all runs for the selected process
   useEffect(() => {
@@ -136,6 +150,10 @@ function App({ isDarkMode, onThemeToggle }) {
 
     return () => clearInterval(interval);
   }, [selectedProcess]);
+
+  // Tab index for Diagrams: after Process (0), optional Run (1), Cards, optional Plots
+  const diagramsTabIndex =
+    (selectedRun ? 1 : 0) + 2 + (hasPlotsAvailable ? 1 : 0);
 
   return (
     <Layout>
@@ -193,21 +211,30 @@ function App({ isDarkMode, onThemeToggle }) {
               {selectedRun && <Tab label="Run" />}
               <Tab label="Cards" />
               {hasPlotsAvailable && <Tab label="Plots" />}
+              {hasDiagramsAvailable && <Tab label="Diagrams" />}
             </Tabs>
           )}
         </AppBar>
         <Box sx={{ flexGrow: 1, p: 3, overflow: "auto" }}>
-          <MainContent
-            selectedProcess={selectedProcess}
-            selectedRun={selectedRun}
-            onSelectRun={handleSelectRun}
-            onSelectRunAndNavigate={handleSelectRunAndNavigate}
-            selectedTab={selectedTab}
-            isDarkMode={isDarkMode}
-            runsData={runsData}
-            onRefreshProcess={handleRefreshProcess}
-            onDeleteProcess={handleDeleteProcess}
-          />
+          {selectedTab !== diagramsTabIndex || !hasDiagramsAvailable ? (
+            <MainContent
+              selectedProcess={selectedProcess}
+              selectedRun={selectedRun}
+              onSelectRun={handleSelectRun}
+              onSelectRunAndNavigate={handleSelectRunAndNavigate}
+              selectedTab={selectedTab}
+              isDarkMode={isDarkMode}
+              runsData={runsData}
+              onRefreshProcess={handleRefreshProcess}
+              onDeleteProcess={handleDeleteProcess}
+            />
+          ) : (
+            <DiagramsTab
+              selectedProcess={selectedProcess}
+              subprocesses={subprocesses}
+              isDarkMode={isDarkMode}
+            />
+          )}
         </Box>
       </Box>
     </Layout>
