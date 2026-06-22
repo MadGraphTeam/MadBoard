@@ -16,15 +16,14 @@ def get_processes():
     for process_dir in os.scandir("."):
         if not process_dir.is_dir():
             continue
-        subfolders = [f.name for f in os.scandir(process_dir) if f.is_dir()]
-        if "Cards" not in subfolders or "Events" not in subfolders:
+        if not os.path.isfile(os.path.join(process_dir.path, "Cards", "run_card.toml")):
             continue
-        runs = [
-            f.name
-            for f in os.scandir(os.path.join(process_dir, "Events"))
-            if f.is_dir()
-        ]
-
+        events_dir = os.path.join(process_dir.path, "Events")
+        runs = (
+            [f.name for f in os.scandir(events_dir) if f.is_dir()]
+            if os.path.isdir(events_dir)
+            else []
+        )
         processes.append(
             {
                 "name": process_dir.name,
