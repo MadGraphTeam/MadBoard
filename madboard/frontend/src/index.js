@@ -15,7 +15,7 @@ function AppWithTheme() {
     palette: {
       mode: isDarkMode ? "dark" : "light",
       primary: {
-        main: "#1976d2",
+        main: isDarkMode ? "#1976d2" : "#0d2b4e",
       },
       secondary: {
         main: "#dc004e",
