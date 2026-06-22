@@ -186,7 +186,7 @@ function App({ isDarkMode, onThemeToggle }) {
               }}
             >
               <img
-                src="/logo-dark.png"
+                src="/logo-dark.svg"
                 alt="MadBoard Logo"
                 style={{ height: 40 }}
               />
