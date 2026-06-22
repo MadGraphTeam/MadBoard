@@ -134,7 +134,7 @@ function CardsTab({ selectedProcess, isDarkMode }) {
           <DialogContent sx={{ p: 2 }}>
             <Editor
               height="400px"
-              defaultLanguage="python"
+              path={editingCard}
               value={cardContent}
               onChange={(value) => setCardContent(value || "")}
               theme={isDarkMode ? "vs-dark" : "vs-light"}
