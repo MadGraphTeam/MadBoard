@@ -1,15 +1,14 @@
-"""Development server with automatic browser opening."""
+"""Server entry point using Waitress as WSGI server."""
 
-import os
 import webbrowser
 from threading import Timer
+
+from waitress import serve
 
 from madboard.backend.app import create_app
 
 
 def open_browser(port=5000):
-    """Open the frontend in the browser after a short delay."""
-
     def _open():
         webbrowser.open(f"http://127.0.0.1:{port}")
 
@@ -18,15 +17,10 @@ def open_browser(port=5000):
     timer.start()
 
 
-def run_server(port=5000, debug=True):
-    """Run the Flask development server with browser opening."""
+def run_server(port=5000):
     app = create_app()
-
-    # Open browser on startup
     open_browser(port)
-
-    # Run the server
-    app.run(host="127.0.0.1", port=port, debug=debug, use_reloader=debug)
+    serve(app, host="127.0.0.1", port=port)
 
 
 if __name__ == "__main__":

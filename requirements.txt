@@ -1,3 +1,4 @@
 flask>=2.3.0
 flask-cors>=4.0.0
 werkzeug>=2.3.0
+waitress>=3.0.0
