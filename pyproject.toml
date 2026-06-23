@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "madboard"
-version = "0.1.4"
-description = "A simple web application with Python Flask backend and React frontend"
+version = "0.1.5"
+description = "Modernized web interface for the MadGraph7 event generator"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Theo Heimel", email = "theo.heimel@uclouvain.be"}
 ]
 keywords = ["flask", "react", "web-application"]
 classifiers = [
