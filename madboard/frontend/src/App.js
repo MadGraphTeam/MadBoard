@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   Box,
   AppBar,
@@ -8,23 +14,35 @@ import {
   Typography,
   IconButton,
   Tooltip,
+  Badge,
+  Menu,
+  MenuItem,
+  ListItemText,
+  Chip,
 } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import Layout from "./components/Layout";
 import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
 import DiagramsTab from "./components/DiagramsTab";
+import TaskOutputModal from "./components/TaskOutputModal";
 
 function App({ isDarkMode, onThemeToggle }) {
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
-  const [runsData, setRunsData] = useState({}); // Map of run name to run info
+  const [runsData, setRunsData] = useState({});
   const runsDataRef = useRef({});
   const [subprocesses, setSubprocesses] = useState([]);
 
-  // Check if any run has histograms
+  // MadGraph background tasks
+  const [tasks, setTasks] = useState([]);
+  const [openTaskId, setOpenTaskId] = useState(null);
+  const [tasksMenuAnchor, setTasksMenuAnchor] = useState(null);
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+
   const hasPlotsAvailable = useMemo(() => {
     return Object.values(runsData).some(
       (runInfo) =>
@@ -39,7 +57,6 @@ function App({ isDarkMode, onThemeToggle }) {
   };
 
   const handleSelectProcess = (process) => {
-    // Only reset data if switching to a different process
     if (process !== selectedProcess) {
       setSelectedProcess(process);
       setSelectedRun(null);
@@ -59,13 +76,11 @@ function App({ isDarkMode, onThemeToggle }) {
   };
 
   const handleRefreshProcess = async () => {
-    // Refresh the current process's runs without full page reload
     if (!selectedProcess) return;
     try {
       const response = await fetch(`/api/processes/${selectedProcess}/runs`);
       if (!response.ok) throw new Error("Failed to fetch runs");
       const data = await response.json();
-
       const newRunsData = {};
       for (const runObj of data.runs) {
         newRunsData[runObj.name] = runObj;
@@ -78,21 +93,17 @@ function App({ isDarkMode, onThemeToggle }) {
   };
 
   const handleDeleteProcess = async () => {
-    // Reset process and run selection without full page reload
     setSelectedProcess(null);
     setSelectedRun(null);
     setSelectedTab(0);
     setRunsData({});
-    // Refresh sidebar to update process list
     window.location.reload();
   };
 
-  // Keep ref in sync with state
   useEffect(() => {
     runsDataRef.current = runsData;
   }, [runsData]);
 
-  // Fetch subprocesses with diagrams for the selected process
   useEffect(() => {
     if (!selectedProcess) return;
     fetch(`/api/processes/${selectedProcess}/subprocesses`)
@@ -101,7 +112,6 @@ function App({ isDarkMode, onThemeToggle }) {
       .catch(() => setSubprocesses([]));
   }, [selectedProcess]);
 
-  // Fetch all runs for the selected process
   useEffect(() => {
     if (!selectedProcess) return;
 
@@ -110,13 +120,10 @@ function App({ isDarkMode, onThemeToggle }) {
         const response = await fetch(`/api/processes/${selectedProcess}/runs`);
         if (!response.ok) throw new Error("Failed to fetch runs");
         const data = await response.json();
-
-        // New API returns a list of objects with name and info
         const newRunsData = {};
         for (const runObj of data.runs) {
           newRunsData[runObj.name] = runObj;
         }
-        console.log("Fetched runs data:", newRunsData);
         setRunsData(newRunsData);
       } catch (err) {
         console.error("Failed to fetch runs:", err);
@@ -125,10 +132,8 @@ function App({ isDarkMode, onThemeToggle }) {
 
     fetchAllRuns();
 
-    // Set up auto-refresh for non-done runs
     const interval = setInterval(async () => {
       try {
-        // Only re-fetch info for non-done runs, don't re-fetch the run list
         const newRunsData = { ...runsDataRef.current };
         for (const [runName, runInfo] of Object.entries(runsDataRef.current)) {
           if (runInfo.status !== "done" && runInfo.status !== "unknown") {
@@ -154,7 +159,41 @@ function App({ isDarkMode, onThemeToggle }) {
     return () => clearInterval(interval);
   }, [selectedProcess]);
 
-  // Tab index for Diagrams: after Process (0), optional Run (1), Cards, optional Plots
+  // ── MadGraph task management ────────────────────────────────────────────────
+
+  const handleAddProcess = useCallback(async (processStr, processName) => {
+    try {
+      const resp = await fetch("/api/madgraph/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ process: processStr, name: processName }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        console.error("Failed to start MadGraph:", err.error);
+        return;
+      }
+      const { task_id, name } = await resp.json();
+      const newTask = { id: task_id, name, status: "running" };
+      setTasks((prev) => [...prev, newTask]);
+      setOpenTaskId(task_id);
+    } catch (err) {
+      console.error("Error starting MadGraph process:", err);
+    }
+  }, []);
+
+  const handleTaskDone = useCallback((taskId, status) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status } : t)),
+    );
+    if (status === "done") {
+      setSidebarRefreshKey((k) => k + 1);
+    }
+  }, []);
+
+  const runningCount = tasks.filter((t) => t.status === "running").length;
+  const openTask = tasks.find((t) => t.id === openTaskId) ?? null;
+
   const diagramsTabIndex =
     (selectedRun ? 1 : 0) + 2 + (hasPlotsAvailable ? 1 : 0);
 
@@ -165,6 +204,8 @@ function App({ isDarkMode, onThemeToggle }) {
         onSelectRun={handleSelectRun}
         selectedProcess={selectedProcess}
         selectedRun={selectedRun}
+        onAddProcess={handleAddProcess}
+        refreshKey={sidebarRefreshKey}
       />
       <Box
         component="main"
@@ -192,6 +233,18 @@ function App({ isDarkMode, onThemeToggle }) {
               />
               <Typography variant="h5">MadBoard</Typography>
             </Box>
+            {tasks.length > 0 && (
+              <Tooltip title="Background tasks">
+                <IconButton
+                  onClick={(e) => setTasksMenuAnchor(e.currentTarget)}
+                  color="inherit"
+                >
+                  <Badge badgeContent={runningCount} color="warning">
+                    <PendingActionsIcon />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+            )}
             <Tooltip
               title={
                 isDarkMode ? "Switch to light mode" : "Switch to dark mode"
@@ -217,6 +270,7 @@ function App({ isDarkMode, onThemeToggle }) {
             </Tabs>
           )}
         </AppBar>
+
         <Box sx={{ flexGrow: 1, p: 3, overflow: "auto" }}>
           {selectedTab !== diagramsTabIndex || !hasDiagramsAvailable ? (
             <MainContent
@@ -239,6 +293,52 @@ function App({ isDarkMode, onThemeToggle }) {
           )}
         </Box>
       </Box>
+
+      {/* Background tasks dropdown */}
+      <Menu
+        anchorEl={tasksMenuAnchor}
+        open={Boolean(tasksMenuAnchor)}
+        onClose={() => setTasksMenuAnchor(null)}
+      >
+        {tasks.map((task) => (
+          <MenuItem
+            key={task.id}
+            onClick={() => {
+              setOpenTaskId(task.id);
+              setTasksMenuAnchor(null);
+            }}
+            sx={{ gap: 1 }}
+          >
+            <ListItemText primary={task.name} />
+            <Chip
+              label={task.status}
+              size="small"
+              color={
+                task.status === "done"
+                  ? "success"
+                  : task.status === "error"
+                    ? "error"
+                    : "warning"
+              }
+            />
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* Task output modal */}
+      <TaskOutputModal
+        open={openTaskId !== null}
+        task={openTask}
+        onClose={() => setOpenTaskId(null)}
+        onTaskDone={handleTaskDone}
+      />
+
+      <style>{`
+        @keyframes madboard-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
     </Layout>
   );
 }

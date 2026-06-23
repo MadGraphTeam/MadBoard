@@ -6,7 +6,7 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 
 
-def create_app():
+def create_app(madgraph_path=None):
     """Create and configure the Flask application."""
     app = Flask(
         __name__, static_folder="../frontend/build/static", static_url_path="/static"
@@ -17,6 +17,7 @@ def create_app():
 
     # Configuration
     app.config["DEBUG"] = os.getenv("FLASK_ENV", "development") == "development"
+    app.config["MADGRAPH_PATH"] = madgraph_path
 
     # Register blueprints
     from madboard.backend.routes import api_bp

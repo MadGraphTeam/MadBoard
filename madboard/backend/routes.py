@@ -2,11 +2,166 @@
 
 import json
 import os
+import queue as _queue
 import shutil
+import subprocess as _subprocess
+import threading as _threading
+import uuid as _uuid
 
-from flask import Blueprint, request, send_file
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    request,
+    send_file,
+    stream_with_context,
+)
 
 api_bp = Blueprint("api", __name__)
+
+
+# ── MadGraph task registry ────────────────────────────────────────────────────
+
+
+class _Task:
+    def __init__(self, task_id, name):
+        self.id = task_id
+        self.name = name
+        self.status = "running"
+        self._lines = []
+        self._subscribers = []
+        self._lock = _threading.Lock()
+
+    def add_line(self, line):
+        with self._lock:
+            self._lines.append(line)
+            for q in self._subscribers:
+                q.put({"line": line})
+
+    def finish(self, status):
+        with self._lock:
+            self.status = status
+            for q in self._subscribers:
+                q.put({"done": True, "status": status})
+            self._subscribers.clear()
+
+    def subscribe(self):
+        q = _queue.Queue()
+        with self._lock:
+            for line in self._lines:
+                q.put({"line": line})
+            if self.status != "running":
+                q.put({"done": True, "status": self.status})
+            else:
+                self._subscribers.append(q)
+        return q
+
+    def unsubscribe(self, q):
+        with self._lock:
+            try:
+                self._subscribers.remove(q)
+            except ValueError:
+                pass
+
+
+_tasks: dict[str, _Task] = {}
+_tasks_lock = _threading.Lock()
+
+
+@api_bp.route("/madgraph/status", methods=["GET"])
+def madgraph_status():
+    """Return whether a MadGraph executable was found."""
+    path = current_app.config.get("MADGRAPH_PATH")
+    return {"available": path is not None}, 200
+
+
+@api_bp.route("/madgraph/generate", methods=["POST"])
+def madgraph_generate():
+    """Start a MadGraph generate+output run and return a task ID."""
+    path = current_app.config.get("MADGRAPH_PATH")
+    if not path:
+        return {"error": "MadGraph executable not available"}, 503
+
+    data = request.json or {}
+    process_str = data.get("process", "").strip()
+    name = data.get("name", "").strip()
+
+    if not process_str or not name:
+        return {"error": "process and name are required"}, 400
+
+    task_id = str(_uuid.uuid4())
+    task = _Task(task_id, name)
+    with _tasks_lock:
+        _tasks[task_id] = task
+
+    stdin_input = f"generate {process_str}\noutput {name}\n"
+
+    def _run():
+        try:
+            proc = _subprocess.Popen(
+                [path],
+                stdin=_subprocess.PIPE,
+                stdout=_subprocess.PIPE,
+                stderr=_subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+            proc.stdin.write(stdin_input)
+            proc.stdin.close()
+            for line in proc.stdout:
+                task.add_line(line.rstrip("\n"))
+            proc.wait()
+            task.finish("done" if proc.returncode == 0 else "error")
+        except Exception as exc:
+            task.add_line(f"[error] {exc}")
+            task.finish("error")
+
+    _threading.Thread(target=_run, daemon=True).start()
+
+    return {"task_id": task_id, "name": name}, 200
+
+
+@api_bp.route("/madgraph/tasks", methods=["GET"])
+def list_tasks():
+    """List all MadGraph tasks and their statuses."""
+    with _tasks_lock:
+        result = [
+            {"id": t.id, "name": t.name, "status": t.status} for t in _tasks.values()
+        ]
+    return {"tasks": result}, 200
+
+
+@api_bp.route("/madgraph/tasks/<task_id>/stream", methods=["GET"])
+def stream_task(task_id):
+    """SSE stream of output lines for a MadGraph task."""
+    with _tasks_lock:
+        task = _tasks.get(task_id)
+    if task is None:
+        return {"error": "Task not found"}, 404
+
+    q = task.subscribe()
+
+    def _generate():
+        try:
+            while True:
+                try:
+                    event = q.get(timeout=30)
+                except _queue.Empty:
+                    yield ": heartbeat\n\n"
+                    continue
+                yield f"data: {json.dumps(event)}\n\n"
+                if event.get("done"):
+                    break
+        finally:
+            task.unsubscribe(q)
+
+    resp = Response(
+        stream_with_context(_generate()),
+        content_type="text/event-stream",
+    )
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["X-Accel-Buffering"] = "no"
+    return resp
 
 
 @api_bp.route("/processes", methods=["GET"])

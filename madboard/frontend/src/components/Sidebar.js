@@ -1,24 +1,27 @@
 import React, { useState, useEffect } from "react";
 import {
+  Alert,
+  Box,
+  CircularProgress,
+  Collapse,
   Drawer,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Box,
-  IconButton,
-  Collapse,
-  CircularProgress,
-  Alert,
+  Tooltip,
 } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
+import AddIcon from "@mui/icons-material/Add";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import FolderIcon from "@mui/icons-material/Folder";
 import FileIcon from "@mui/icons-material/Description";
+import FolderIcon from "@mui/icons-material/Folder";
+import MenuIcon from "@mui/icons-material/Menu";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import AddProcessDialog from "./AddProcessDialog";
 
 const DRAWER_WIDTH = 360;
 
@@ -27,54 +30,22 @@ function Sidebar({
   onSelectRun,
   selectedProcess,
   selectedRun,
+  onAddProcess,
+  refreshKey,
 }) {
   const [open, setOpen] = useState(true);
   const [expandedItems, setExpandedItems] = useState({});
   const [processes, setProcesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [madgraphAvailable, setMadgraphAvailable] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
-    // Fetch processes from API
-    const fetchProcesses = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/processes");
-        if (!response.ok) {
-          throw new Error("Failed to fetch processes");
-        }
-        const data = await response.json();
-        setProcesses(data.processes);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-        setProcesses([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProcesses();
-  }, []);
-
-  const toggleDrawer = () => {
-    setOpen(!open);
-  };
-
-  const toggleExpanded = (itemLabel) => {
-    setExpandedItems((prev) => ({
-      ...prev,
-      [itemLabel]: !prev[itemLabel],
-    }));
-  };
-
-  const refreshProcesses = async () => {
+  const fetchProcesses = async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/processes");
-      if (!response.ok) {
-        throw new Error("Failed to fetch processes");
-      }
+      if (!response.ok) throw new Error("Failed to fetch processes");
       const data = await response.json();
       setProcesses(data.processes);
       setError(null);
@@ -86,8 +57,29 @@ function Sidebar({
     }
   };
 
-  const collapseAll = () => {
-    setExpandedItems({});
+  useEffect(() => {
+    fetchProcesses();
+  }, [refreshKey]);
+
+  useEffect(() => {
+    fetch("/api/madgraph/status")
+      .then((r) => r.json())
+      .then((d) => setMadgraphAvailable(d.available))
+      .catch(() => setMadgraphAvailable(false));
+  }, []);
+
+  const toggleDrawer = () => setOpen(!open);
+  const collapseAll = () => setExpandedItems({});
+
+  const toggleExpanded = (itemLabel) => {
+    setExpandedItems((prev) => ({
+      ...prev,
+      [itemLabel]: !prev[itemLabel],
+    }));
+  };
+
+  const handleDialogSubmit = (processStr, processName) => {
+    onAddProcess(processStr, processName);
   };
 
   return (
@@ -123,8 +115,15 @@ function Sidebar({
         >
           <span style={{ fontWeight: "bold" }}>Processes</span>
           <Box sx={{ display: "flex", gap: 0.5 }}>
+            {madgraphAvailable && (
+              <Tooltip title="Add process">
+                <IconButton onClick={() => setDialogOpen(true)} size="small">
+                  <AddIcon />
+                </IconButton>
+              </Tooltip>
+            )}
             <IconButton
-              onClick={refreshProcesses}
+              onClick={fetchProcesses}
               size="small"
               title="Refresh processes"
             >
@@ -246,6 +245,12 @@ function Sidebar({
           </IconButton>
         </Box>
       )}
+      <AddProcessDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSubmit={handleDialogSubmit}
+        existingProcesses={processes.map((p) => p.name)}
+      />
     </>
   );
 }
