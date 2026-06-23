@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 
-// ANSI SGR color palettes (for a dark terminal background)
+// ── Color tables ──────────────────────────────────────────────────────────────
 const FG = {
   30: "#2e3436",
   31: "#cc0000",
@@ -47,93 +47,10 @@ const BG = {
   107: "#eeeeec",
 };
 
-// Parse a string with ANSI CSI sequences into an array of {text, style} segments.
-// Unknown / non-SGR sequences are silently dropped.
-function parseAnsi(raw) {
-  // Strip bare carriage returns (progress-bar overwrites)
-  const text = raw.replace(/\r(?!\n)/g, "");
-
-  const segments = [];
-  // Match any CSI sequence: ESC [ <params> <final-byte>
-  const csiRe = /\x1b\[([0-9;:]*)([A-Za-z])/g;
-  let style = {};
-  let last = 0;
-
-  for (const m of text.matchAll(csiRe)) {
-    if (m.index > last) {
-      segments.push({ text: text.slice(last, m.index), style: { ...style } });
-    }
-    last = m.index + m[0].length;
-
-    if (m[2] !== "m") continue; // only handle SGR
-
-    const codes = m[1] === "" ? [0] : m[1].split(/[;:]/).map(Number);
-    let i = 0;
-    while (i < codes.length) {
-      const c = codes[i];
-      if (c === 0) {
-        style = {};
-      } else if (c === 1) {
-        style = { ...style, fontWeight: "bold" };
-      } else if (c === 2) {
-        style = { ...style, opacity: 0.6 };
-      } else if (c === 3) {
-        style = { ...style, fontStyle: "italic" };
-      } else if (c === 4) {
-        style = { ...style, textDecoration: "underline" };
-      } else if (c === 7) {
-        // reverse: swap fg/bg — approximate with invert filter
-        style = { ...style, filter: "invert(1)" };
-      } else if (c === 9) {
-        style = { ...style, textDecoration: "line-through" };
-      } else if (c === 22) {
-        const { fontWeight, opacity, ...rest } = style;
-        style = rest;
-      } else if (c === 23) {
-        const { fontStyle, ...rest } = style;
-        style = rest;
-      } else if (c === 24) {
-        const { textDecoration, ...rest } = style;
-        style = rest;
-      } else if (c === 39) {
-        const { color, ...rest } = style;
-        style = rest;
-      } else if (c === 49) {
-        const { backgroundColor, ...rest } = style;
-        style = rest;
-      } else if ((c >= 30 && c <= 37) || (c >= 90 && c <= 97)) {
-        style = { ...style, color: FG[c] };
-      } else if ((c >= 40 && c <= 47) || (c >= 100 && c <= 107)) {
-        style = { ...style, backgroundColor: BG[c] };
-      } else if (c === 38 || c === 48) {
-        const prop = c === 38 ? "color" : "backgroundColor";
-        if (codes[i + 1] === 2 && i + 4 < codes.length) {
-          style = {
-            ...style,
-            [prop]: `rgb(${codes[i + 2]},${codes[i + 3]},${codes[i + 4]})`,
-          };
-          i += 4;
-        } else if (codes[i + 1] === 5 && i + 2 < codes.length) {
-          style = { ...style, [prop]: ansi256(codes[i + 2]) };
-          i += 2;
-        }
-      }
-      i++;
-    }
-  }
-
-  if (last < text.length) {
-    segments.push({ text: text.slice(last), style: { ...style } });
-  }
-
-  return segments;
-}
-
-// Rough approximation of the xterm 256-color palette
 function ansi256(n) {
-  if (n < 16) {
-    const basic = [
-      "#000000",
+  if (n < 16)
+    return [
+      "#000",
       "#800000",
       "#008000",
       "#808000",
@@ -149,56 +66,284 @@ function ansi256(n) {
       "#ff00ff",
       "#00ffff",
       "#ffffff",
-    ];
-    return basic[n];
-  }
+    ][n];
   if (n >= 232) {
     const v = Math.round(((n - 232) / 23) * 255);
     return `rgb(${v},${v},${v})`;
   }
   n -= 16;
-  const b = n % 6,
-    g = Math.floor(n / 6) % 6,
-    r = Math.floor(n / 36);
   const ch = (x) => (x === 0 ? 0 : 55 + x * 40);
-  return `rgb(${ch(r)},${ch(g)},${ch(b)})`;
+  return `rgb(${ch(Math.floor(n / 36))},${ch(Math.floor(n / 6) % 6)},${ch(
+    n % 6,
+  )})`;
 }
 
-function AnsiLine({ text }) {
-  const segments = parseAnsi(text);
-  if (segments.length === 0) return <span> </span>;
-  return (
-    <>
-      {segments.map((seg, i) =>
-        seg.text ? (
-          <span key={i} style={seg.style}>
-            {seg.text}
-          </span>
-        ) : null,
-      )}
-    </>
-  );
+function sameStyle(a, b) {
+  const ka = Object.keys(a),
+    kb = Object.keys(b);
+  if (ka.length !== kb.length) return false;
+  for (const k of ka) if (a[k] !== b[k]) return false;
+  return true;
 }
 
+// ── Virtual terminal emulator ─────────────────────────────────────────────────
+// Matches CSI sequences (ESC [ ... X) or bare ESC + one char.
+const ESC_RE = /\x1b(?:\[([^A-Za-z]*)([A-Za-z])|([^[]))/g;
+
+class TerminalEmulator {
+  constructor() {
+    this.rows = [[]]; // rows[r][c] = { char, style }
+    this.cursorRow = 0;
+    this.cursorCol = 0;
+    this.style = {};
+    this.savedCursor = { row: 0, col: 0 };
+  }
+
+  _ensureRow(r) {
+    while (this.rows.length <= r) this.rows.push([]);
+  }
+
+  _writeChar(ch) {
+    this._ensureRow(this.cursorRow);
+    const row = this.rows[this.cursorRow];
+    while (row.length <= this.cursorCol) row.push({ char: " ", style: {} });
+    row[this.cursorCol] = { char: ch, style: this.style };
+    this.cursorCol++;
+  }
+
+  _processSGR(raw) {
+    const codes = raw === "" ? [0] : raw.split(/[;:]/).map(Number);
+    let i = 0;
+    while (i < codes.length) {
+      const c = codes[i];
+      if (c === 0) {
+        this.style = {};
+      } else if (c === 1) this.style = { ...this.style, fontWeight: "bold" };
+      else if (c === 2) this.style = { ...this.style, opacity: 0.6 };
+      else if (c === 3) this.style = { ...this.style, fontStyle: "italic" };
+      else if (c === 4)
+        this.style = { ...this.style, textDecoration: "underline" };
+      else if (c === 7) this.style = { ...this.style, filter: "invert(1)" };
+      else if (c === 9)
+        this.style = { ...this.style, textDecoration: "line-through" };
+      else if (c === 22) {
+        const { fontWeight, opacity, ...r } = this.style;
+        this.style = r;
+      } else if (c === 23) {
+        const { fontStyle, ...r } = this.style;
+        this.style = r;
+      } else if (c === 24) {
+        const { textDecoration, ...r } = this.style;
+        this.style = r;
+      } else if (c === 39) {
+        const { color, ...r } = this.style;
+        this.style = r;
+      } else if (c === 49) {
+        const { backgroundColor, ...r } = this.style;
+        this.style = r;
+      } else if ((c >= 30 && c <= 37) || (c >= 90 && c <= 97))
+        this.style = { ...this.style, color: FG[c] };
+      else if ((c >= 40 && c <= 47) || (c >= 100 && c <= 107))
+        this.style = { ...this.style, backgroundColor: BG[c] };
+      else if (c === 38 || c === 48) {
+        const prop = c === 38 ? "color" : "backgroundColor";
+        if (codes[i + 1] === 2 && i + 4 < codes.length) {
+          this.style = {
+            ...this.style,
+            [prop]: `rgb(${codes[i + 2]},${codes[i + 3]},${codes[i + 4]})`,
+          };
+          i += 4;
+        } else if (codes[i + 1] === 5 && i + 2 < codes.length) {
+          this.style = { ...this.style, [prop]: ansi256(codes[i + 2]) };
+          i += 2;
+        }
+      }
+      i++;
+    }
+  }
+
+  _eraseInLine(mode) {
+    this._ensureRow(this.cursorRow);
+    const row = this.rows[this.cursorRow];
+    if (mode === 0) {
+      // cursor → end
+      for (let i = this.cursorCol; i < row.length; i++)
+        row[i] = { char: " ", style: {} };
+    } else if (mode === 1) {
+      // start → cursor
+      for (let i = 0; i <= Math.min(this.cursorCol, row.length - 1); i++)
+        row[i] = { char: " ", style: {} };
+    } else if (mode === 2) {
+      // whole line
+      this.rows[this.cursorRow] = [];
+    }
+  }
+
+  _eraseInDisplay(mode) {
+    if (mode === 0) {
+      // cursor → end of display
+      this._eraseInLine(0);
+      for (let r = this.cursorRow + 1; r < this.rows.length; r++)
+        this.rows[r] = [];
+    } else if (mode === 1) {
+      // start → cursor
+      for (let r = 0; r < this.cursorRow; r++) this.rows[r] = [];
+      this._eraseInLine(1);
+    } else if (mode === 2 || mode === 3) {
+      // whole display
+      for (let r = 0; r < this.rows.length; r++) this.rows[r] = [];
+    }
+  }
+
+  // Feed a chunk of text (may contain escape sequences and control chars).
+  feed(text) {
+    let last = 0;
+    for (const m of text.matchAll(ESC_RE)) {
+      if (m.index > last) this._writeRaw(text.slice(last, m.index));
+      last = m.index + m[0].length;
+
+      if (m[3] !== undefined) {
+        // Bare ESC + single char (non-CSI)
+        const ch = m[3];
+        if (ch === "7")
+          this.savedCursor = { row: this.cursorRow, col: this.cursorCol };
+        else if (ch === "8") {
+          this.cursorRow = this.savedCursor.row;
+          this.cursorCol = this.savedCursor.col;
+        } else if (ch === "M") this.cursorRow = Math.max(0, this.cursorRow - 1); // reverse index
+        // all others ignored
+        continue;
+      }
+
+      const params = m[1];
+      const cmd = m[2];
+
+      // Ignore DEC private / intermediate sequences
+      if (/^[!?]/.test(params)) continue;
+
+      const parts =
+        params === "" ? [0] : params.split(";").map((s) => parseInt(s) || 0);
+      const n = parts[0] || 1;
+
+      switch (cmd) {
+        case "m":
+          this._processSGR(params);
+          break;
+        case "A":
+          this.cursorRow = Math.max(0, this.cursorRow - n);
+          break;
+        case "B":
+          this.cursorRow += n;
+          this._ensureRow(this.cursorRow);
+          break;
+        case "C":
+          this.cursorCol += n;
+          break;
+        case "D":
+          this.cursorCol = Math.max(0, this.cursorCol - n);
+          break;
+        case "E":
+          this.cursorRow += n;
+          this.cursorCol = 0;
+          this._ensureRow(this.cursorRow);
+          break;
+        case "F":
+          this.cursorRow = Math.max(0, this.cursorRow - n);
+          this.cursorCol = 0;
+          break;
+        case "G":
+          this.cursorCol = Math.max(0, n - 1);
+          break;
+        case "H":
+        case "f":
+          this.cursorRow = Math.max(0, (parts[0] || 1) - 1);
+          this.cursorCol = Math.max(0, (parts[1] || 1) - 1);
+          this._ensureRow(this.cursorRow);
+          break;
+        case "J":
+          this._eraseInDisplay(parts[0] || 0);
+          break;
+        case "K":
+          this._eraseInLine(parts[0] || 0);
+          break;
+        case "s":
+          this.savedCursor = { row: this.cursorRow, col: this.cursorCol };
+          break;
+        case "u":
+          this.cursorRow = this.savedCursor.row;
+          this.cursorCol = this.savedCursor.col;
+          break;
+        default:
+          break;
+      }
+    }
+    if (last < text.length) this._writeRaw(text.slice(last));
+  }
+
+  _writeRaw(text) {
+    for (const ch of text) {
+      const cp = ch.charCodeAt(0);
+      if (ch === "\n") {
+        this.cursorRow++;
+        this.cursorCol = 0;
+        this._ensureRow(this.cursorRow);
+      } else if (ch === "\r") {
+        this.cursorCol = 0;
+      } else if (ch === "\t") {
+        this.cursorCol = (Math.floor(this.cursorCol / 8) + 1) * 8;
+      } else if (ch === "\x08") {
+        this.cursorCol = Math.max(0, this.cursorCol - 1);
+      } else if (ch === "\x07" || ch === "\x1b") {
+        /* bell / stray ESC: ignore */
+      } else if (cp >= 0x20) {
+        this._writeChar(ch);
+      }
+    }
+  }
+
+  // Returns rows as arrays of {text, style} segments (adjacent same-style cells merged).
+  getSnapshot() {
+    return this.rows.map((row) => {
+      if (row.length === 0) return [{ text: "", style: {} }];
+      const segs = [];
+      let txt = row[0].char,
+        sty = row[0].style;
+      for (let i = 1; i < row.length; i++) {
+        if (sameStyle(row[i].style, sty)) {
+          txt += row[i].char;
+        } else {
+          segs.push({ text: txt, style: sty });
+          txt = row[i].char;
+          sty = row[i].style;
+        }
+      }
+      segs.push({ text: txt, style: sty });
+      return segs;
+    });
+  }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 function TaskOutputModal({ open, task, onClose, onTaskDone }) {
-  const [lines, setLines] = useState([]);
+  const [snapshot, setSnapshot] = useState([]);
   const [termStatus, setTermStatus] = useState("running");
+  const termRef = useRef(null);
   const bottomRef = useRef(null);
   const esRef = useRef(null);
 
   useEffect(() => {
     if (!open || !task) {
-      setLines([]);
+      setSnapshot([]);
       setTermStatus("running");
       return;
     }
 
-    setLines([]);
+    const term = new TerminalEmulator();
+    termRef.current = term;
+    setSnapshot([]);
     setTermStatus("running");
 
-    if (esRef.current) {
-      esRef.current.close();
-    }
+    if (esRef.current) esRef.current.close();
 
     const es = new EventSource(`/api/madgraph/tasks/${task.id}/stream`);
     esRef.current = es;
@@ -215,10 +360,11 @@ function TaskOutputModal({ open, task, onClose, onTaskDone }) {
           return;
         }
         if (data.line !== undefined) {
-          setLines((prev) => [...prev, data.line]);
+          term.feed(data.line + "\n");
+          setSnapshot(term.getSnapshot());
         }
       } catch {
-        setLines((prev) => [...prev, e.data]);
+        // ignore parse errors
       }
     };
 
@@ -236,8 +382,8 @@ function TaskOutputModal({ open, task, onClose, onTaskDone }) {
   }, [open, task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [lines]);
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [snapshot]);
 
   const chipColor =
     termStatus === "done"
@@ -257,8 +403,12 @@ function TaskOutputModal({ open, task, onClose, onTaskDone }) {
           sx={{
             backgroundColor: "#1a1a1a",
             color: "#d4d4d4",
-            fontFamily: '"Courier New", Courier, monospace',
+            fontFamily:
+              '"Menlo", "Monaco", "Consolas", "Courier New", monospace',
             fontSize: "0.8rem",
+            lineHeight: 1,
+            letterSpacing: 0,
+            wordSpacing: 0,
             p: 2,
             height: 450,
             overflow: "auto",
@@ -266,9 +416,17 @@ function TaskOutputModal({ open, task, onClose, onTaskDone }) {
             whiteSpace: "pre",
           }}
         >
-          {lines.map((line, i) => (
-            <div key={i}>
-              <AnsiLine text={line} />
+          {snapshot.map((rowSegs, rowIdx) => (
+            <div key={rowIdx}>
+              {rowSegs.some((s) => s.text)
+                ? rowSegs.map((seg, segIdx) =>
+                    seg.text ? (
+                      <span key={segIdx} style={seg.style}>
+                        {seg.text}
+                      </span>
+                    ) : null,
+                  )
+                : " "}
             </div>
           ))}
           {termStatus === "running" && (
