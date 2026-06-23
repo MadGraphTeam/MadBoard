@@ -191,6 +191,11 @@ function App({ isDarkMode, onThemeToggle }) {
     }
   }, []);
 
+  const handleRunStarted = useCallback((taskId, name) => {
+    setTasks((prev) => [...prev, { id: taskId, name, status: "running" }]);
+    setOpenTaskId(taskId);
+  }, []);
+
   const runningCount = tasks.filter((t) => t.status === "running").length;
   const openTask = tasks.find((t) => t.id === openTaskId) ?? null;
 
@@ -283,6 +288,7 @@ function App({ isDarkMode, onThemeToggle }) {
               runsData={runsData}
               onRefreshProcess={handleRefreshProcess}
               onDeleteProcess={handleDeleteProcess}
+              onRunStarted={handleRunStarted}
             />
           ) : (
             <DiagramsTab

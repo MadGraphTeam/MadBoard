@@ -16,8 +16,10 @@ import { DataGrid } from "@mui/x-data-grid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { formatWithError, formatSIPrefix } from "../utils/formatting";
+import StartRunDialog from "./StartRunDialog";
 
 function ProcessTab({
   selectedProcess,
@@ -26,9 +28,12 @@ function ProcessTab({
   runsData,
   onRefreshProcess,
   onDeleteProcess,
+  isDarkMode,
+  onRunStarted,
 }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [downloadMenuRun, setDownMenuRun] = useState(null);
+  const [startRunOpen, setStartRunOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     title: "",
@@ -316,6 +321,15 @@ function ProcessTab({
       {/* Process management buttons */}
       <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
         <Button
+          variant="contained"
+          onClick={() => setStartRunOpen(true)}
+          size="small"
+          startIcon={<PlayArrowIcon />}
+          disabled={!onRunStarted}
+        >
+          Start Run
+        </Button>
+        <Button
           variant="outlined"
           onClick={onRefreshProcess}
           size="small"
@@ -341,6 +355,17 @@ function ProcessTab({
           Delete Process
         </Button>
       </Stack>
+
+      <StartRunDialog
+        open={startRunOpen}
+        onClose={() => setStartRunOpen(false)}
+        selectedProcess={selectedProcess}
+        isDarkMode={isDarkMode}
+        onRunStarted={(taskId, name) => {
+          setStartRunOpen(false);
+          onRunStarted?.(taskId, name);
+        }}
+      />
     </Box>
   );
 }

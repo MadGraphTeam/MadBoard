@@ -164,6 +164,48 @@ def stream_task(task_id):
     return resp
 
 
+@api_bp.route("/processes/<process_name>/run", methods=["POST"])
+def start_run(process_name):
+    """Launch bin/generate_events -f inside the process directory."""
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+
+    exe = os.path.join(process_dir, "bin", "generate_events")
+    if not os.path.isfile(exe) or not os.access(exe, os.X_OK):
+        return {"error": f"generate_events not found in {process_name}/bin/"}, 503
+
+    task_id = str(_uuid.uuid4())
+    task_name = f"{process_name} — run"
+    task = _Task(task_id, task_name)
+    with _tasks_lock:
+        _tasks[task_id] = task
+
+    abs_exe = os.path.abspath(exe)
+    abs_cwd = os.path.abspath(process_dir)
+
+    def _run():
+        try:
+            proc = _subprocess.Popen(
+                [abs_exe, "-f"],
+                stdout=_subprocess.PIPE,
+                stderr=_subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                cwd=abs_cwd,
+            )
+            for line in proc.stdout:
+                task.add_line(line.rstrip("\n"))
+            proc.wait()
+            task.finish("done" if proc.returncode == 0 else "error")
+        except Exception as exc:
+            task.add_line(f"[error] {exc}")
+            task.finish("error")
+
+    _threading.Thread(target=_run, daemon=True).start()
+    return {"task_id": task_id, "name": task_name}, 200
+
+
 @api_bp.route("/processes", methods=["GET"])
 def get_processes():
     """Get list of processes with their runs."""

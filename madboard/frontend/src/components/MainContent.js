@@ -16,6 +16,7 @@ function MainContent({
   runsData,
   onRefreshProcess,
   onDeleteProcess,
+  onRunStarted,
 }) {
   // Check if any run has histograms
   const hasPlotsAvailable = useMemo(() => {
@@ -52,6 +53,8 @@ function MainContent({
           runsData={runsData}
           onRefreshProcess={onRefreshProcess}
           onDeleteProcess={onDeleteProcess}
+          isDarkMode={isDarkMode}
+          onRunStarted={onRunStarted}
         />
       )}
       {selectedTab === 1 && selectedRun && (
