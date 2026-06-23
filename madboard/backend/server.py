@@ -36,9 +36,13 @@ def run_server(port=5000):
     else:
         print(
             f"MadGraph executable not found at '{madgraph_path}'. "
-            "Process generation will be unavailable."
+            "Process generation will be unavailable.\n"
+            f"  Hint: use --madgraph=<path> to specify the mg5_aMC executable."
         )
         madgraph_path = None
+
+    url = f"http://127.0.0.1:{args.port}"
+    print(f"Starting MadBoard at {url}")
 
     app = create_app(madgraph_path=madgraph_path)
     open_browser(args.port)
