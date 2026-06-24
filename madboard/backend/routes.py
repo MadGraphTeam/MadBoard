@@ -31,6 +31,17 @@ class _Task:
         self._lines = []
         self._subscribers = []
         self._lock = _threading.Lock()
+        self._proc = None
+
+    def set_proc(self, proc):
+        with self._lock:
+            self._proc = proc
+
+    def abort(self):
+        with self._lock:
+            proc = self._proc
+        if proc and proc.poll() is None:
+            proc.terminate()
 
     def add_line(self, line):
         with self._lock:
@@ -41,6 +52,7 @@ class _Task:
     def finish(self, status):
         with self._lock:
             self.status = status
+            self._proc = None
             for q in self._subscribers:
                 q.put({"done": True, "status": status})
             self._subscribers.clear()
@@ -106,12 +118,17 @@ def madgraph_generate():
                 text=True,
                 bufsize=1,
             )
+            task.set_proc(proc)
             proc.stdin.write(stdin_input)
             proc.stdin.close()
             for line in proc.stdout:
                 task.add_line(line.rstrip("\n"))
             proc.wait()
-            task.finish("done" if proc.returncode == 0 else "error")
+            task.finish(
+                "done"
+                if proc.returncode == 0
+                else "aborted" if proc.returncode < 0 else "error"
+            )
         except Exception as exc:
             task.add_line(f"[error] {exc}")
             task.finish("error")
@@ -164,6 +181,19 @@ def stream_task(task_id):
     return resp
 
 
+@api_bp.route("/madgraph/tasks/<task_id>/abort", methods=["POST"])
+def abort_task(task_id):
+    """Send SIGTERM to the subprocess backing a running task."""
+    with _tasks_lock:
+        task = _tasks.get(task_id)
+    if task is None:
+        return {"error": "Task not found"}, 404
+    if task.status != "running":
+        return {"error": "Task is not running"}, 409
+    task.abort()
+    return {"message": "Abort signal sent"}, 200
+
+
 @api_bp.route("/processes/<process_name>/run", methods=["POST"])
 def start_run(process_name):
     """Launch bin/generate_events -f inside the process directory."""
@@ -194,10 +224,15 @@ def start_run(process_name):
                 bufsize=1,
                 cwd=abs_cwd,
             )
+            task.set_proc(proc)
             for line in proc.stdout:
                 task.add_line(line.rstrip("\n"))
             proc.wait()
-            task.finish("done" if proc.returncode == 0 else "error")
+            task.finish(
+                "done"
+                if proc.returncode == 0
+                else "aborted" if proc.returncode < 0 else "error"
+            )
         except Exception as exc:
             task.add_line(f"[error] {exc}")
             task.finish("error")

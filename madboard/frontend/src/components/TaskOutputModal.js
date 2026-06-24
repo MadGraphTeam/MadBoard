@@ -385,12 +385,19 @@ function TaskOutputModal({ open, task, onClose, onTaskDone }) {
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, [snapshot]);
 
+  const handleAbort = async () => {
+    if (!task) return;
+    await fetch(`/api/madgraph/tasks/${task.id}/abort`, { method: "POST" });
+  };
+
   const chipColor =
     termStatus === "done"
       ? "success"
-      : termStatus === "error"
-        ? "error"
-        : "warning";
+      : termStatus === "aborted"
+        ? "default"
+        : termStatus === "error"
+          ? "error"
+          : "warning";
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -443,6 +450,11 @@ function TaskOutputModal({ open, task, onClose, onTaskDone }) {
         </Box>
       </DialogContent>
       <DialogActions>
+        {termStatus === "running" && (
+          <Button onClick={handleAbort} color="error">
+            Abort
+          </Button>
+        )}
         <Button onClick={onClose}>Close</Button>
       </DialogActions>
     </Dialog>

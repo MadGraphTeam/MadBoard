@@ -35,6 +35,7 @@ function App({ isDarkMode, onThemeToggle }) {
   const [selectedRun, setSelectedRun] = useState(null);
   const [runsData, setRunsData] = useState({});
   const runsDataRef = useRef({});
+  const refreshProcessRef = useRef(null);
   const [subprocesses, setSubprocesses] = useState([]);
 
   // MadGraph background tasks
@@ -91,6 +92,7 @@ function App({ isDarkMode, onThemeToggle }) {
       console.error("Failed to refresh process:", err);
     }
   };
+  refreshProcessRef.current = handleRefreshProcess;
 
   const handleDeleteProcess = async () => {
     setSelectedProcess(null);
@@ -194,6 +196,7 @@ function App({ isDarkMode, onThemeToggle }) {
   const handleRunStarted = useCallback((taskId, name) => {
     setTasks((prev) => [...prev, { id: taskId, name, status: "running" }]);
     setOpenTaskId(taskId);
+    setTimeout(() => refreshProcessRef.current?.(), 1000);
   }, []);
 
   const runningCount = tasks.filter((t) => t.status === "running").length;
