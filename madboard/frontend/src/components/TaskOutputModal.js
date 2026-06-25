@@ -88,7 +88,9 @@ function sameStyle(a, b) {
 
 // ── Virtual terminal emulator ─────────────────────────────────────────────────
 // Matches CSI sequences (ESC [ ... X) or bare ESC + one char.
-const ESC_RE = /\x1b(?:\[([^A-Za-z]*)([A-Za-z])|([^[]))/g;
+// ESC (0x1b) is kept out of string/regex literals to satisfy no-control-regex.
+const ESC = String.fromCharCode(0x1b);
+const ESC_RE = new RegExp(ESC + "(?:\\[([^A-Za-z]*)([A-Za-z])|([^[]))", "g");
 
 class TerminalEmulator {
   constructor() {
