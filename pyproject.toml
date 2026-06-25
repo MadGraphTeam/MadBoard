@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "madboard"
-version = "0.1.5"
-description = "Modernized web interface for the MadGraph7 event generator"
+version = "0.1.6"
+description = "Modern web interface for the MadGraph7 event generator"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
