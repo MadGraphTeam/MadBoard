@@ -2,6 +2,8 @@
 
 import argparse
 import os
+import secrets
+import socket
 import webbrowser
 from threading import Timer
 
@@ -9,10 +11,25 @@ from waitress import serve
 
 from madboard.backend.app import create_app
 
+HOST = "127.0.0.1"
 
-def open_browser(port=5000):
+
+def find_free_port(start_port, host=HOST, max_tries=100):
+    """Return the first free port at or after start_port."""
+    port = start_port
+    for _ in range(max_tries):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind((host, port))
+                return port
+            except OSError:
+                port += 1
+    raise RuntimeError(f"Could not find a free port in range {start_port}-{port - 1}")
+
+
+def open_browser(url):
     def _open():
-        webbrowser.open(f"http://127.0.0.1:{port}")
+        webbrowser.open(url)
 
     timer = Timer(1.0, _open)
     timer.daemon = True
@@ -41,12 +58,17 @@ def run_server(port=5000):
         )
         madgraph_path = None
 
-    url = f"http://127.0.0.1:{args.port}"
+    port = find_free_port(args.port)
+    if port != args.port:
+        print(f"Port {args.port} is already in use, using port {port} instead.")
+
+    token = secrets.token_urlsafe(32)
+    url = f"http://{HOST}:{port}/?token={token}"
     print(f"Starting MadBoard at {url}")
 
-    app = create_app(madgraph_path=madgraph_path)
-    open_browser(args.port)
-    serve(app, host="127.0.0.1", port=args.port)
+    app = create_app(madgraph_path=madgraph_path, token=token)
+    open_browser(url)
+    serve(app, host=HOST, port=port)
 
 
 if __name__ == "__main__":
