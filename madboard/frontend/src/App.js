@@ -51,6 +51,17 @@ function App({ isDarkMode, onThemeToggle }) {
     );
   }, [runsData]);
 
+  const hasMadnisAvailable = useMemo(() => {
+    return Object.values(runsData).some(
+      (runInfo) =>
+        runInfo &&
+        runInfo.madnis_trainings &&
+        runInfo.madnis_trainings.some(
+          (t) => Array.isArray(t.batch) && t.batch.length > 0,
+        ),
+    );
+  }, [runsData]);
+
   const hasDiagramsAvailable = subprocesses.length > 0;
 
   const handleTabChange = (event, newValue) => {
@@ -203,7 +214,10 @@ function App({ isDarkMode, onThemeToggle }) {
   const openTask = tasks.find((t) => t.id === openTaskId) ?? null;
 
   const diagramsTabIndex =
-    (selectedRun ? 1 : 0) + 2 + (hasPlotsAvailable ? 1 : 0);
+    (selectedRun ? 1 : 0) +
+    2 +
+    (hasPlotsAvailable ? 1 : 0) +
+    (hasMadnisAvailable ? 1 : 0);
 
   return (
     <Layout>
@@ -273,7 +287,8 @@ function App({ isDarkMode, onThemeToggle }) {
               <Tab label="Process" />
               {selectedRun && <Tab label="Run" />}
               <Tab label="Cards" />
-              {hasPlotsAvailable && <Tab label="Plots" />}
+              {hasPlotsAvailable && <Tab label="Histograms" />}
+              {hasMadnisAvailable && <Tab label="MadNIS" />}
               {hasDiagramsAvailable && <Tab label="Diagrams" />}
             </Tabs>
           )}

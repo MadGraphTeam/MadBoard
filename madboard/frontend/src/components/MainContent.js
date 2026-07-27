@@ -5,6 +5,7 @@ import ProcessTab from "./ProcessTab";
 import RunTab from "./RunTab";
 import CardsTab from "./CardsTab";
 import PlotsTab from "./PlotsTab";
+import MadNisTab from "./MadNisTab";
 
 function MainContent({
   selectedProcess,
@@ -25,6 +26,24 @@ function MainContent({
         runInfo && runInfo.histograms && runInfo.histograms.length > 0,
     );
   }, [runsData]);
+
+  // Check if any run has MadNIS training data with a per-checkpoint "batch" array
+  const hasMadnisAvailable = useMemo(() => {
+    return Object.values(runsData).some(
+      (runInfo) =>
+        runInfo &&
+        runInfo.madnis_trainings &&
+        runInfo.madnis_trainings.some(
+          (t) => Array.isArray(t.batch) && t.batch.length > 0,
+        ),
+    );
+  }, [runsData]);
+
+  const cardsTabIndex = selectedRun ? 2 : 1;
+  const histogramsTabIndex = hasPlotsAvailable ? cardsTabIndex + 1 : null;
+  const madnisTabIndex = hasMadnisAvailable
+    ? (histogramsTabIndex ?? cardsTabIndex) + 1
+    : null;
 
   if (!selectedProcess) {
     return (
@@ -64,13 +83,15 @@ function MainContent({
           runsData={runsData}
         />
       )}
-      {(!selectedRun ? selectedTab === 1 : selectedTab === 2) && (
+      {selectedTab === cardsTabIndex && (
         <CardsTab selectedProcess={selectedProcess} isDarkMode={isDarkMode} />
       )}
-      {hasPlotsAvailable &&
-        (!selectedRun ? selectedTab === 2 : selectedTab === 3) && (
-          <PlotsTab selectedRun={selectedRun} runsData={runsData} />
-        )}
+      {hasPlotsAvailable && selectedTab === histogramsTabIndex && (
+        <PlotsTab selectedRun={selectedRun} runsData={runsData} />
+      )}
+      {hasMadnisAvailable && selectedTab === madnisTabIndex && (
+        <MadNisTab selectedRun={selectedRun} runsData={runsData} />
+      )}
     </Box>
   );
 }

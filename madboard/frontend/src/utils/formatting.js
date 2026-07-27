@@ -63,3 +63,60 @@ export function formatEfficiency(numerator, denominator) {
   if (denominator === 0) return "N/A";
   return (numerator / denominator).toFixed(5);
 }
+
+// Unicode superscript characters for exponents
+const SUPERSCRIPT_MAP = {
+  0: "⁰",
+  1: "¹",
+  2: "²",
+  3: "³",
+  4: "⁴",
+  5: "⁵",
+  6: "⁶",
+  7: "⁷",
+  8: "⁸",
+  9: "⁹",
+  "-": "⁻",
+};
+
+/**
+ * Format a chart tick value as mantissa · 10^exponent using unicode superscript
+ * @param {number} value - The value to format
+ * @returns {string} Formatted tick label
+ */
+export function formatScientificTick(value) {
+  if (value === 0) return "0";
+
+  const exponent = Math.floor(Math.log10(Math.abs(value)));
+  const mantissa = value / Math.pow(10, exponent);
+
+  // Round mantissa to 2 decimal places
+  const roundedMantissa = Math.round(mantissa * 100) / 100;
+
+  // Format exponent with superscript
+  const exponentStr = exponent.toString();
+  const exponentSuperscript = exponentStr
+    .split("")
+    .map((char) => SUPERSCRIPT_MAP[char])
+    .join("");
+
+  // If mantissa is essentially 1, just show the exponent
+  if (Math.abs(roundedMantissa - 1) < 0.001) {
+    return "10" + exponentSuperscript;
+  }
+
+  // Otherwise show mantissa · 10^exponent
+  return `${roundedMantissa}⋅10${exponentSuperscript}`;
+}
+
+// Shared color palette for distinguishing runs/subprocesses across charts
+export const RUN_COLORS = [
+  "#8884d8",
+  "#82ca9d",
+  "#ffc658",
+  "#ff7c7c",
+  "#8dd1e1",
+  "#d084d0",
+  "#a4de6c",
+  "#ffc658",
+];

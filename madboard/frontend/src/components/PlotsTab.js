@@ -19,59 +19,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
-// Unicode superscript characters for exponents
-const SUPERSCRIPT_MAP = {
-  0: "⁰",
-  1: "¹",
-  2: "²",
-  3: "³",
-  4: "⁴",
-  5: "⁵",
-  6: "⁶",
-  7: "⁷",
-  8: "⁸",
-  9: "⁹",
-  "-": "⁻",
-};
-
-// Format number as mantissa · 10^exponent using unicode superscript
-function formatScientificTick(value) {
-  if (value === 0) return "0";
-
-  const exponent = Math.floor(Math.log10(Math.abs(value)));
-  const mantissa = value / Math.pow(10, exponent);
-
-  // Round mantissa to 2 decimal places
-  const roundedMantissa = Math.round(mantissa * 100) / 100;
-
-  // Format exponent with superscript
-  const exponentStr = exponent.toString();
-  const exponentSuperscript = exponentStr
-    .split("")
-    .map((char) => SUPERSCRIPT_MAP[char])
-    .join("");
-
-  // If mantissa is essentially 1, just show the exponent
-  if (Math.abs(roundedMantissa - 1) < 0.001) {
-    return "10" + exponentSuperscript;
-  }
-
-  // Otherwise show mantissa · 10^exponent
-  return `${roundedMantissa}⋅10${exponentSuperscript}`;
-}
-
-// Color palette for different runs
-const RUN_COLORS = [
-  "#8884d8",
-  "#82ca9d",
-  "#ffc658",
-  "#ff7c7c",
-  "#8dd1e1",
-  "#d084d0",
-  "#a4de6c",
-  "#ffc658",
-];
+import { formatScientificTick, RUN_COLORS } from "../utils/formatting";
 
 function PlotsTab({ selectedRun, runsData }) {
   const [scales, setScales] = useState({}); // Track linear/log scale per histogram
@@ -215,7 +163,7 @@ function PlotsTab({ selectedRun, runsData }) {
     return (
       <Card>
         <CardContent>
-          <Typography variant="h6">Plots</Typography>
+          <Typography variant="h6">Histograms</Typography>
           <Typography variant="body2" color="text.secondary">
             No histograms available
           </Typography>
@@ -267,120 +215,130 @@ function PlotsTab({ selectedRun, runsData }) {
       </Card>
 
       {/* Histogram charts */}
-      {Object.entries(chartDataByName).map(
-        ([histogramName, { runDataArrays, histogramList }]) => {
-          const scale = scales[histogramName] || "linear";
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+          gap: 3,
+        }}
+      >
+        {Object.entries(chartDataByName).map(
+          ([histogramName, { runDataArrays, histogramList }]) => {
+            const scale = scales[histogramName] || "linear";
 
-          // Compute x-axis domain from all selected runs
-          let xMin = Infinity;
-          let xMax = -Infinity;
-          histogramList.forEach(({ runName }) => {
-            const data = runDataArrays[runName];
-            if (data && data.length > 0) {
-              const dataMin = Math.min(...data.map((point) => point.x));
-              const dataMax = Math.max(...data.map((point) => point.x));
-              xMin = Math.min(xMin, dataMin);
-              xMax = Math.max(xMax, dataMax);
-            }
-          });
-          const xDomain =
-            xMin !== Infinity && xMax !== -Infinity ? [xMin, xMax] : [0, 1];
+            // Compute x-axis domain from all selected runs
+            let xMin = Infinity;
+            let xMax = -Infinity;
+            histogramList.forEach(({ runName }) => {
+              const data = runDataArrays[runName];
+              if (data && data.length > 0) {
+                const dataMin = Math.min(...data.map((point) => point.x));
+                const dataMax = Math.max(...data.map((point) => point.x));
+                xMin = Math.min(xMin, dataMin);
+                xMax = Math.max(xMax, dataMax);
+              }
+            });
+            const xDomain =
+              xMin !== Infinity && xMax !== -Infinity ? [xMin, xMax] : [0, 1];
 
-          return (
-            <Card key={histogramName}>
-              <CardContent>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ mb: 2 }}
-                >
-                  <Typography variant="h6">{histogramName}</Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => toggleScale(histogramName)}
+            return (
+              <Card key={histogramName}>
+                <CardContent>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    sx={{ mb: 2 }}
                   >
-                    {scale === "linear" ? "Switch to Log" : "Switch to Linear"}
-                  </Button>
-                </Stack>
-                <ResponsiveContainer width="100%" height={400}>
-                  <ComposedChart>
-                    <CartesianGrid opacity={0.5} />
-                    <XAxis
-                      dataKey="x"
-                      domain={xDomain}
-                      label={{
-                        value: histogramName,
-                        position: "insideBottomRight",
-                        offset: -5,
-                      }}
-                      type="number"
-                    />
-                    <YAxis
-                      scale={scale}
-                      domain={[scale === "log" ? "auto" : 0, "auto"]}
-                      tickFormatter={
-                        scale === "log" ? formatScientificTick : undefined
-                      }
-                      label={{
-                        value: "Cross section (pb)",
-                        angle: -90,
-                        position: "insideLeft",
-                      }}
-                    />
-                    <Legend />
+                    <Typography variant="h6">{histogramName}</Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => toggleScale(histogramName)}
+                    >
+                      {scale === "linear"
+                        ? "Switch to Log"
+                        : "Switch to Linear"}
+                    </Button>
+                  </Stack>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <ComposedChart>
+                      <CartesianGrid opacity={0.5} />
+                      <XAxis
+                        dataKey="x"
+                        domain={xDomain}
+                        label={{
+                          value: histogramName,
+                          position: "insideBottomRight",
+                          offset: -5,
+                        }}
+                        type="number"
+                      />
+                      <YAxis
+                        scale={scale}
+                        domain={[scale === "log" ? "auto" : 0, "auto"]}
+                        tickFormatter={
+                          scale === "log" ? formatScientificTick : undefined
+                        }
+                        label={{
+                          value: "Cross section (pb)",
+                          angle: -90,
+                          position: "insideLeft",
+                        }}
+                      />
+                      <Legend />
 
-                    {/* Render error areas and lines for each run */}
-                    {histogramList.map(({ runName }) => {
-                      const color = runColorMap[runName];
-                      let displayData = runDataArrays[runName];
+                      {/* Render error areas and lines for each run */}
+                      {histogramList.map(({ runName }) => {
+                        const color = runColorMap[runName];
+                        let displayData = runDataArrays[runName];
 
-                      // Replace non-positive values with null for log scale
-                      if (scale === "log") {
-                        displayData = displayData.map((point) => ({
-                          ...point,
-                          y: point.y > 0 ? point.y : null,
-                          yError: Array.isArray(point.yError)
-                            ? [
-                                point.yError[0] > 0 ? point.yError[0] : null,
-                                point.yError[1] > 0 ? point.yError[1] : null,
-                              ]
-                            : point.yError,
-                        }));
-                      }
+                        // Replace non-positive values with null for log scale
+                        if (scale === "log") {
+                          displayData = displayData.map((point) => ({
+                            ...point,
+                            y: point.y > 0 ? point.y : null,
+                            yError: Array.isArray(point.yError)
+                              ? [
+                                  point.yError[0] > 0 ? point.yError[0] : null,
+                                  point.yError[1] > 0 ? point.yError[1] : null,
+                                ]
+                              : point.yError,
+                          }));
+                        }
 
-                      return [
-                        <Area
-                          key={`area_${runName}`}
-                          type="stepAfter"
-                          dataKey="yError"
-                          data={displayData}
-                          stroke="none"
-                          fill={color}
-                          fillOpacity={0.2}
-                          isAnimationActive={false}
-                          legendType="none"
-                        />,
-                        <Line
-                          key={`line_${runName}`}
-                          type="stepAfter"
-                          dataKey="y"
-                          data={displayData}
-                          stroke={color}
-                          name={runName}
-                          isAnimationActive={false}
-                          dot={false}
-                        />,
-                      ];
-                    })}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          );
-        },
-      )}
+                        return [
+                          <Area
+                            key={`area_${runName}`}
+                            type="stepAfter"
+                            dataKey="yError"
+                            data={displayData}
+                            stroke="none"
+                            fill={color}
+                            fillOpacity={0.2}
+                            isAnimationActive={false}
+                            legendType="none"
+                          />,
+                          <Line
+                            key={`line_${runName}`}
+                            type="stepAfter"
+                            dataKey="y"
+                            data={displayData}
+                            stroke={color}
+                            name={runName}
+                            isAnimationActive={false}
+                            dot={false}
+                          />,
+                        ];
+                      })}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            );
+          },
+        )}
+      </Box>
     </Box>
   );
 }
