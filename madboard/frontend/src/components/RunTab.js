@@ -1,5 +1,13 @@
 import React, { useMemo } from "react";
-import { Box, Typography, CircularProgress } from "@mui/material";
+import {
+  Box,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
   formatWithError,
@@ -7,6 +15,49 @@ import {
   formatRSD,
   formatEfficiency,
 } from "../utils/formatting";
+
+// Header names are long enough to be cut off in a narrow column, so let them
+// wrap instead of truncating
+const GRID_SX = {
+  "& .MuiDataGrid-columnHeaderTitle": {
+    whiteSpace: "normal",
+    lineHeight: 1.3,
+  },
+};
+
+// The "before cuts" variants repeat the "after cuts" ones for most runs; they
+// stay available in the column menu
+const HIDDEN_COLUMNS = {
+  samplesBeforeCuts: false,
+  unweightingEfficiencyBeforeCuts: false,
+};
+
+const STATUS_COLORS = {
+  done: "success",
+  running: "warning",
+  failed: "error",
+  error: "error",
+};
+
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds)) return null;
+  if (seconds < 60) return `${seconds.toFixed(1)} s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ${Math.round(seconds % 60)} s`;
+  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+}
+
+/** One headline number of the run */
+function SummaryItem({ label, value }) {
+  return (
+    <Box sx={{ minWidth: 140 }}>
+      <Typography variant="caption" color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="h6">{value}</Typography>
+    </Box>
+  );
+}
 
 function RunTab({ selectedProcess, selectedRun, runsData }) {
   const { subprocessesRows, channelsRows } = useMemo(() => {
@@ -105,6 +156,37 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
     return { subprocessesRows: subprocessRows, channelsRows: channelRows };
   }, [selectedRun, runsData]);
 
+  // Headline numbers of the run, taken from the process-level aggregate
+  const summary = useMemo(() => {
+    const data = runsData[selectedRun] || {};
+    const process = data.process || {};
+    const runTimes = data.run_times || {};
+    const wallTime = Object.values(runTimes).reduce(
+      (total, step) => total + (step?.wall_time_sec || 0),
+      0,
+    );
+    const hasCross =
+      typeof process.mean === "number" && typeof process.error === "number";
+    return {
+      status: data.status || "unknown",
+      crossSection: hasCross
+        ? formatWithError(process.mean, process.error)
+        : "—",
+      unweightedEvents:
+        typeof process.count_unweighted === "number"
+          ? formatSIPrefix(process.count_unweighted)
+          : "—",
+      samples:
+        typeof process.count === "number" ? formatSIPrefix(process.count) : "—",
+      relStdDev:
+        typeof process.rel_std_dev === "number"
+          ? formatRSD(process.rel_std_dev)
+          : "—",
+      runTime: wallTime > 0 ? formatDuration(wallTime) : null,
+      seed: data.seed != null ? String(data.seed) : null,
+    };
+  }, [selectedRun, runsData]);
+
   const subprocessesColumns = [
     {
       field: "name",
@@ -126,7 +208,6 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
       flex: 1,
       minWidth: 100,
       sortable: true,
-      hide: true,
     },
     {
       field: "samplesAfterCuts",
@@ -155,7 +236,6 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
       flex: 1,
       minWidth: 100,
       sortable: true,
-      hide: true,
     },
     {
       field: "unweightingEfficiencyAfterCuts",
@@ -183,21 +263,76 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      {/* What this run is and how it came out */}
+      <Card>
+        <CardContent>
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1.5}
+            sx={{ mb: 2 }}
+          >
+            <Typography variant="h5">{selectedRun}</Typography>
+            <Chip
+              label={summary.status}
+              size="small"
+              color={STATUS_COLORS[summary.status] || "default"}
+            />
+            <Typography variant="body2" color="text.secondary">
+              {selectedProcess}
+            </Typography>
+          </Stack>
+          <Stack
+            direction="row"
+            spacing={4}
+            sx={{ flexWrap: "wrap", rowGap: 2 }}
+          >
+            <SummaryItem
+              label="Cross section (pb)"
+              value={summary.crossSection}
+            />
+            <SummaryItem
+              label="Unweighted events"
+              value={summary.unweightedEvents}
+            />
+            <SummaryItem label="Samples" value={summary.samples} />
+            <SummaryItem
+              label="Relative standard deviation"
+              value={summary.relStdDev}
+            />
+            {summary.runTime && (
+              <SummaryItem label="Run time" value={summary.runTime} />
+            )}
+            {summary.seed && <SummaryItem label="Seed" value={summary.seed} />}
+          </Stack>
+        </CardContent>
+      </Card>
+
       <Box>
         <Typography variant="h6" sx={{ mb: 2 }}>
           Subprocesses
         </Typography>
-        <Box sx={{ height: 300, width: "100%" }}>
-          <DataGrid rows={subprocessesRows} columns={subprocessesColumns} />
-        </Box>
+        <DataGrid
+          rows={subprocessesRows}
+          columns={subprocessesColumns}
+          autoHeight
+          columnHeaderHeight={64}
+          sx={GRID_SX}
+          initialState={{ columns: { columnVisibilityModel: HIDDEN_COLUMNS } }}
+        />
       </Box>
       <Box>
         <Typography variant="h6" sx={{ mb: 2 }}>
           Channels
         </Typography>
-        <Box sx={{ height: 300, width: "100%" }}>
-          <DataGrid rows={channelsRows} columns={channelsColumns} />
-        </Box>
+        <DataGrid
+          rows={channelsRows}
+          columns={channelsColumns}
+          autoHeight
+          columnHeaderHeight={64}
+          sx={GRID_SX}
+          initialState={{ columns: { columnVisibilityModel: HIDDEN_COLUMNS } }}
+        />
       </Box>
     </Box>
   );
