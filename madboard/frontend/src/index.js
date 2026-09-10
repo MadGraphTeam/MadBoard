@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { NotificationProvider } from "./components/Notifications";
 // Core Monaco API (no language contributions).
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 // Each contribution import also pulls in _.contribution.js, which registers
@@ -87,7 +88,9 @@ function AppWithTheme() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <App isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />
+      <NotificationProvider>
+        <App isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />
+      </NotificationProvider>
     </ThemeProvider>
   );
 }

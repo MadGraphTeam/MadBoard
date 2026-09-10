@@ -16,8 +16,10 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DownloadIcon from "@mui/icons-material/Download";
 import Editor from "@monaco-editor/react";
+import { errorMessage, useNotify } from "./Notifications";
 
 function CardsTab({ selectedProcess, isDarkMode }) {
+  const notify = useNotify();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,7 +59,7 @@ function CardsTab({ selectedProcess, isDarkMode }) {
       setEditingCard(cardName);
       setCardContent(data.content);
     } catch (err) {
-      console.error(err);
+      notify(`Could not open ${cardName}: ${err.message}`);
     }
   };
 
@@ -72,11 +74,14 @@ function CardsTab({ selectedProcess, isDarkMode }) {
           body: JSON.stringify({ content: cardContent }),
         },
       );
-      if (!response.ok) throw new Error("Failed to save card");
+      if (!response.ok) {
+        throw new Error(await errorMessage(response, "Failed to save card"));
+      }
+      notify(`Saved ${editingCard}`, "success");
       setEditingCard(null);
       setCardContent("");
     } catch (err) {
-      console.error(err);
+      notify(err.message);
     } finally {
       setIsSaving(false);
     }

@@ -28,6 +28,7 @@ import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
 import DiagramsTab from "./components/DiagramsTab";
 import TaskOutputModal from "./components/TaskOutputModal";
+import { errorMessage, useNotify } from "./components/Notifications";
 
 // Tabs are addressed by name: which tabs exist depends on the selected
 // process and run, so a positional index would silently point at a different
@@ -43,6 +44,7 @@ const TAB_LABELS = {
 };
 
 function App({ isDarkMode, onThemeToggle }) {
+  const notify = useNotify();
   const [selectedTab, setSelectedTab] = useState("process");
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
@@ -54,6 +56,7 @@ function App({ isDarkMode, onThemeToggle }) {
 
   // MadGraph background tasks
   const [tasks, setTasks] = useState([]);
+  const tasksRef = useRef([]);
   const [openTaskId, setOpenTaskId] = useState(null);
   const [tasksMenuAnchor, setTasksMenuAnchor] = useState(null);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
@@ -160,6 +163,10 @@ function App({ isDarkMode, onThemeToggle }) {
   }, [runsData]);
 
   useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+
+  useEffect(() => {
     if (!selectedProcess) return;
     fetch(`/api/processes/${selectedProcess}/subprocesses`)
       .then((res) => res.json())
@@ -231,35 +238,46 @@ function App({ isDarkMode, onThemeToggle }) {
 
   // ── MadGraph task management ────────────────────────────────────────────────
 
-  const handleAddProcess = useCallback(async (processStr, processName) => {
-    try {
-      const resp = await fetch("/api/madgraph/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ process: processStr, name: processName }),
-      });
-      if (!resp.ok) {
-        const err = await resp.json();
-        console.error("Failed to start MadGraph:", err.error);
-        return;
+  const handleAddProcess = useCallback(
+    async (processStr, processName) => {
+      try {
+        const resp = await fetch("/api/madgraph/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ process: processStr, name: processName }),
+        });
+        if (!resp.ok) {
+          notify(await errorMessage(resp, "Failed to start MadGraph"));
+          return;
+        }
+        const { task_id, name } = await resp.json();
+        const newTask = { id: task_id, name, status: "running" };
+        setTasks((prev) => [...prev, newTask]);
+        setOpenTaskId(task_id);
+      } catch (err) {
+        notify(`Could not start MadGraph: ${err.message}`);
       }
-      const { task_id, name } = await resp.json();
-      const newTask = { id: task_id, name, status: "running" };
-      setTasks((prev) => [...prev, newTask]);
-      setOpenTaskId(task_id);
-    } catch (err) {
-      console.error("Error starting MadGraph process:", err);
-    }
-  }, []);
+    },
+    [notify],
+  );
 
-  const handleTaskDone = useCallback((taskId, status) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status } : t)),
-    );
-    if (status === "done") {
-      setSidebarRefreshKey((k) => k + 1);
-    }
-  }, []);
+  const handleTaskDone = useCallback(
+    (taskId, status) => {
+      const task = tasksRef.current.find((t) => t.id === taskId);
+      if (task && status !== "done") {
+        notify(
+          `"${task.name}" ${status === "aborted" ? "was aborted" : "failed"}`,
+        );
+      }
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status } : t)),
+      );
+      if (status === "done") {
+        setSidebarRefreshKey((k) => k + 1);
+      }
+    },
+    [notify],
+  );
 
   const handleRunStarted = useCallback((taskId, name) => {
     setTasks((prev) => [...prev, { id: taskId, name, status: "running" }]);

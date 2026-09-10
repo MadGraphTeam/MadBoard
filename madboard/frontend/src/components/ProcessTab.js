@@ -20,6 +20,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { formatWithError, formatSIPrefix } from "../utils/formatting";
 import StartRunDialog from "./StartRunDialog";
+import { useNotify } from "./Notifications";
 
 function ProcessTab({
   selectedProcess,
@@ -31,6 +32,7 @@ function ProcessTab({
   isDarkMode,
   onRunStarted,
 }) {
+  const notify = useNotify();
   const [anchorEl, setAnchorEl] = useState(null);
   const [downloadMenuRun, setDownMenuRun] = useState(null);
   const [startRunOpen, setStartRunOpen] = useState(false);
@@ -109,8 +111,7 @@ function ProcessTab({
             onRefreshProcess();
           }
         } catch (err) {
-          console.error("Error deleting run:", err);
-          alert("Failed to delete run");
+          notify(`Could not delete run: ${err.message}`);
         }
         setConfirmDialog({ ...confirmDialog, open: false });
       },
@@ -145,8 +146,7 @@ function ProcessTab({
             onDeleteProcess();
           }
         } catch (err) {
-          console.error("Error deleting process:", err);
-          alert("Failed to delete process");
+          notify(`Could not delete process: ${err.message}`);
         }
       },
     });
@@ -173,8 +173,7 @@ function ProcessTab({
             onRefreshProcess();
           }
         } catch (err) {
-          console.error("Error deleting runs:", err);
-          alert("Failed to delete runs");
+          notify(`Could not delete runs: ${err.message}`);
         }
         setConfirmDialog({ ...confirmDialog, open: false });
       },
