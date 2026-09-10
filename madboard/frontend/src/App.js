@@ -37,6 +37,7 @@ function App({ isDarkMode, onThemeToggle }) {
   const runsDataRef = useRef({});
   const refreshProcessRef = useRef(null);
   const [subprocesses, setSubprocesses] = useState([]);
+  const [scans, setScans] = useState([]);
 
   // MadGraph background tasks
   const [tasks, setTasks] = useState([]);
@@ -62,6 +63,8 @@ function App({ isDarkMode, onThemeToggle }) {
     );
   }, [runsData]);
 
+  const hasScansAvailable = scans.length > 0;
+
   const hasDiagramsAvailable = subprocesses.length > 0;
 
   const handleTabChange = (event, newValue) => {
@@ -75,6 +78,7 @@ function App({ isDarkMode, onThemeToggle }) {
       setSelectedTab(0);
       setRunsData({});
       setSubprocesses([]);
+      setScans([]);
     }
   };
 
@@ -124,6 +128,21 @@ function App({ isDarkMode, onThemeToggle }) {
       .then((data) => setSubprocesses(data.subprocesses || []))
       .catch(() => setSubprocesses([]));
   }, [selectedProcess]);
+
+  // Scan summaries are written once a scan finishes, so refetch them whenever
+  // the set of runs changes
+  const runNamesKey = useMemo(
+    () => Object.keys(runsData).sort().join(","),
+    [runsData],
+  );
+
+  useEffect(() => {
+    if (!selectedProcess) return;
+    fetch(`/api/processes/${selectedProcess}/scans`)
+      .then((res) => res.json())
+      .then((data) => setScans(data.scans || []))
+      .catch(() => setScans([]));
+  }, [selectedProcess, runNamesKey]);
 
   useEffect(() => {
     if (!selectedProcess) return;
@@ -217,7 +236,8 @@ function App({ isDarkMode, onThemeToggle }) {
     (selectedRun ? 1 : 0) +
     2 +
     (hasPlotsAvailable ? 1 : 0) +
-    (hasMadnisAvailable ? 1 : 0);
+    (hasMadnisAvailable ? 1 : 0) +
+    (hasScansAvailable ? 1 : 0);
 
   return (
     <Layout>
@@ -289,6 +309,7 @@ function App({ isDarkMode, onThemeToggle }) {
               <Tab label="Cards" />
               {hasPlotsAvailable && <Tab label="Histograms" />}
               {hasMadnisAvailable && <Tab label="MadNIS" />}
+              {hasScansAvailable && <Tab label="Scans" />}
               {hasDiagramsAvailable && <Tab label="Diagrams" />}
             </Tabs>
           )}
@@ -304,6 +325,7 @@ function App({ isDarkMode, onThemeToggle }) {
               selectedTab={selectedTab}
               isDarkMode={isDarkMode}
               runsData={runsData}
+              scans={scans}
               onRefreshProcess={handleRefreshProcess}
               onDeleteProcess={handleDeleteProcess}
               onRunStarted={handleRunStarted}

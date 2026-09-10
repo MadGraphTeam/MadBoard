@@ -428,6 +428,42 @@ def download_run_file(process_name, run_name, filename):
     return send_file(os.path.abspath(file_path), as_attachment=True)
 
 
+@api_bp.route("/processes/<process_name>/scans", methods=["GET"])
+def get_scans(process_name):
+    """List the parameter scans of a process, read from Events/scan_*.json."""
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+    events_dir = os.path.join(process_dir, "Events")
+    if not os.path.isdir(events_dir):
+        return {"scans": []}, 200
+    scans = []
+    for entry in sorted(os.scandir(events_dir), key=lambda e: e.name):
+        if not entry.is_file():
+            continue
+        if not entry.name.startswith("scan_") or not entry.name.endswith(".json"):
+            continue
+        try:
+            with open(entry.path, "r") as f:
+                scan = json.load(f)
+        except (OSError, ValueError):
+            continue
+        points = scan.get("points")
+        if not isinstance(points, list) or not points:
+            continue
+        scans.append(
+            {
+                "name": entry.name[len("scan_") : -len(".json")],
+                "file": entry.name,
+                "scan_parameters": scan.get("scan_parameters", []),
+                "result_keys": scan.get("result_keys", []),
+                "points": points,
+                "runs": [point["run_name"] for point in points if "run_name" in point],
+            }
+        )
+    return {"scans": scans}, 200
+
+
 @api_bp.route("/processes/<process_name>/subprocesses", methods=["GET"])
 def get_subprocesses(process_name):
     """List subprocesses that have diagrams.json."""
