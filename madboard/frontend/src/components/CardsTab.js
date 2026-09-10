@@ -5,14 +5,9 @@ import {
   AccordionSummary,
   Alert,
   Box,
-  Button,
   Card,
   CardContent,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   IconButton,
   List,
   ListItem,
@@ -23,8 +18,7 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DownloadIcon from "@mui/icons-material/Download";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import RestoreIcon from "@mui/icons-material/Restore";
-import Editor from "@monaco-editor/react";
+import CardEditorDialog from "./CardEditorDialog";
 import { errorMessage, useNotify } from "./Notifications";
 import { defaultCardName, isTemplate } from "../utils/cards";
 
@@ -177,7 +171,6 @@ function CardsTab({ selectedProcess, isDarkMode }) {
 
   const hasDefault =
     editingCard !== null && cards.includes(defaultCardName(editingCard));
-  const isModified = cardContent !== savedContent;
 
   return (
     <Box sx={{ maxWidth: 800 }}>
@@ -207,50 +200,17 @@ function CardsTab({ selectedProcess, isDarkMode }) {
         </Accordion>
       )}
 
-      <Dialog
-        open={editingCard !== null}
-        onClose={handleCancel}
-        maxWidth="lg"
-        fullWidth
-        slotProps={{ paper: { sx: { height: "90vh" } } }}
-      >
-        <DialogTitle>
-          Edit {editingCard}
-          {isModified ? " •" : ""}
-        </DialogTitle>
-        <DialogContent sx={{ p: 2 }}>
-          <Editor
-            height="100%"
-            path={editingCard || ""}
-            value={cardContent}
-            onChange={(value) => setCardContent(value || "")}
-            theme={isDarkMode ? "vs-dark" : "vs-light"}
-            options={{
-              // Cards are prose-heavy config files: wrap the comment lines
-              // instead of cutting them off, and skip the minimap
-              wordWrap: "on",
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          {hasDefault && (
-            <Button onClick={handleResetToDefault} startIcon={<RestoreIcon />}>
-              Reset to default
-            </Button>
-          )}
-          <Box sx={{ flexGrow: 1 }} />
-          <Button onClick={handleCancel}>Cancel</Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            disabled={isSaving || !isModified}
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CardEditorDialog
+        cardName={editingCard}
+        content={cardContent}
+        savedContent={savedContent}
+        isDarkMode={isDarkMode}
+        isSaving={isSaving}
+        onChange={setCardContent}
+        onCancel={handleCancel}
+        onSave={handleSave}
+        onResetToDefault={hasDefault ? handleResetToDefault : null}
+      />
     </Box>
   );
 }

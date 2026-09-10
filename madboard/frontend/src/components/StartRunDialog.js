@@ -20,8 +20,8 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import Editor from "@monaco-editor/react";
-import { isTemplate } from "../utils/cards";
+import CardEditorDialog from "./CardEditorDialog";
+import { defaultCardName, isTemplate } from "../utils/cards";
 
 const CARD_PRIORITY = ["run_card.toml", "param_card.dat"];
 
@@ -34,10 +34,12 @@ function StartRunDialog({
 }) {
   const [cards, setCards] = useState([]);
   const [templateCards, setTemplateCards] = useState([]);
+  const [allCards, setAllCards] = useState([]);
   const [loadingCards, setLoadingCards] = useState(false);
   const [error, setError] = useState(null);
   const [editingCard, setEditingCard] = useState(null);
   const [cardContent, setCardContent] = useState("");
+  const [savedContent, setSavedContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
@@ -56,22 +58,37 @@ function StartRunDialog({
         const rest = active.filter((c) => !CARD_PRIORITY.includes(c)).sort();
         setCards([...priority, ...rest]);
         setTemplateCards(available.filter(isTemplate).sort());
+        setAllCards(available);
       })
       .catch(() => setError("Failed to load cards"))
       .finally(() => setLoadingCards(false));
   }, [open, selectedProcess]);
 
+  const fetchCardContent = async (cardName) => {
+    const r = await fetch(
+      `/api/processes/${selectedProcess}/cards/${cardName}`,
+    );
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    return d.content;
+  };
+
   const handleEdit = async (cardName) => {
     try {
-      const r = await fetch(
-        `/api/processes/${selectedProcess}/cards/${cardName}`,
-      );
-      if (!r.ok) throw new Error();
-      const d = await r.json();
+      const content = await fetchCardContent(cardName);
       setEditingCard(cardName);
-      setCardContent(d.content);
+      setCardContent(content);
+      setSavedContent(content);
     } catch {
       setError("Failed to load card");
+    }
+  };
+
+  const handleResetToDefault = async () => {
+    try {
+      setCardContent(await fetchCardContent(defaultCardName(editingCard)));
+    } catch {
+      setError("Failed to load the default card");
     }
   };
 
@@ -89,6 +106,7 @@ function StartRunDialog({
       if (!r.ok) throw new Error();
       setEditingCard(null);
       setCardContent("");
+      setSavedContent("");
     } catch {
       setError("Failed to save card");
     } finally {
@@ -99,6 +117,7 @@ function StartRunDialog({
   const closeEditor = () => {
     setEditingCard(null);
     setCardContent("");
+    setSavedContent("");
   };
 
   const handleStartRun = async () => {
@@ -199,30 +218,21 @@ function StartRunDialog({
         </DialogActions>
       </Dialog>
 
-      {/* Nested editor dialog */}
-      <Dialog
-        open={Boolean(editingCard)}
-        onClose={closeEditor}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Edit {editingCard}</DialogTitle>
-        <DialogContent sx={{ p: 2 }}>
-          <Editor
-            height="400px"
-            path={editingCard || undefined}
-            value={cardContent}
-            onChange={(v) => setCardContent(v || "")}
-            theme={isDarkMode ? "vs-dark" : "vs-light"}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeEditor}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={isSaving}>
-            {isSaving ? "Saving…" : "Save"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <CardEditorDialog
+        cardName={editingCard}
+        content={cardContent}
+        savedContent={savedContent}
+        isDarkMode={isDarkMode}
+        isSaving={isSaving}
+        onChange={setCardContent}
+        onCancel={closeEditor}
+        onSave={handleSave}
+        onResetToDefault={
+          editingCard && allCards.includes(defaultCardName(editingCard))
+            ? handleResetToDefault
+            : null
+        }
+      />
     </>
   );
 }
