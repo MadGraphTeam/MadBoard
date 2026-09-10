@@ -82,9 +82,13 @@ _tasks_lock = _threading.Lock()
 
 @api_bp.route("/madgraph/status", methods=["GET"])
 def madgraph_status():
-    """Return whether a MadGraph executable was found."""
+    """Return the MadGraph executable and the directory being served."""
     path = current_app.config.get("MADGRAPH_PATH")
-    return {"available": path is not None}, 200
+    return {
+        "available": path is not None,
+        "madgraph_path": os.path.abspath(path) if path else None,
+        "working_directory": os.path.abspath("."),
+    }, 200
 
 
 @api_bp.route("/madgraph/generate", methods=["POST"])
@@ -275,6 +279,28 @@ def delete_process(process_name):
         return {"error": "Process not found"}, 404
     shutil.rmtree(process_dir)
     return {"message": "Process deleted successfully"}, 200
+
+
+@api_bp.route("/processes/<process_name>/definition", methods=["GET"])
+def get_process_definition(process_name):
+    """Return the model and process lines a process was generated from."""
+    process_dir = os.path.join(".", process_name)
+    if not os.path.isdir(process_dir):
+        return {"error": "Process not found"}, 404
+    proc_card = os.path.join(process_dir, "Cards", "proc_card_mg5.dat")
+    definition = {"model": None, "processes": []}
+    if not os.path.isfile(proc_card):
+        return definition, 200
+    with open(proc_card, "r") as f:
+        for line in f:
+            line = line.split("#")[0].strip()
+            if line.startswith("import model "):
+                definition["model"] = line[len("import model ") :].strip()
+            elif line.startswith("generate "):
+                definition["processes"].append(line[len("generate ") :].strip())
+            elif line.startswith("add process "):
+                definition["processes"].append(line[len("add process ") :].strip())
+    return definition, 200
 
 
 @api_bp.route("/processes/<process_name>/cards", methods=["GET"])

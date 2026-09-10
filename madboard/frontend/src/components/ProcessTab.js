@@ -21,6 +21,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { formatWithError, formatSIPrefix } from "../utils/formatting";
 import StartRunDialog from "./StartRunDialog";
 import { useNotify } from "./Notifications";
+import ProcessHeader from "./ProcessHeader";
 
 function ProcessTab({
   selectedProcess,
@@ -88,7 +89,7 @@ function ProcessTab({
   };
 
   const handleRowClick = (params) => {
-    onSelectRun(params.row.run);
+    handleViewRun(params.row.run);
   };
 
   const handleDeleteRun = (runName) => {
@@ -252,28 +253,44 @@ function ProcessTab({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Box sx={{ height: 400, width: "100%" }}>
-        {Object.keys(runsData).length === 0 ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "100%",
-              backgroundColor: "background.paper",
-              borderRadius: 1,
-              border: "1px solid",
-              borderColor: "divider",
-            }}
+      <ProcessHeader selectedProcess={selectedProcess} runCount={rows.length} />
+
+      {Object.keys(runsData).length === 0 ? (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 2,
+            py: 6,
+            backgroundColor: "background.paper",
+            borderRadius: 1,
+            border: "1px dashed",
+            borderColor: "divider",
+          }}
+        >
+          <Typography variant="body1" color="text.secondary">
+            This process has no runs yet
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<PlayArrowIcon />}
+            onClick={() => setStartRunOpen(true)}
+            disabled={!onRunStarted}
           >
-            <Typography variant="body1" color="text.secondary">
-              No runs found
-            </Typography>
-          </Box>
-        ) : (
-          <DataGrid rows={rows} columns={columns} onRowClick={handleRowClick} />
-        )}
-      </Box>
+            Start the first run
+          </Button>
+        </Box>
+      ) : (
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          onRowClick={handleRowClick}
+          autoHeight
+          sx={{ "& .MuiDataGrid-row": { cursor: "pointer" } }}
+        />
+      )}
 
       {/* Download menu */}
       <Menu

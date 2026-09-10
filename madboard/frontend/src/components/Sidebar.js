@@ -13,6 +13,7 @@ import {
   ListItemText,
   TextField,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -40,7 +41,7 @@ function Sidebar({
   const [processes, setProcesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [madgraphAvailable, setMadgraphAvailable] = useState(false);
+  const [status, setStatus] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filter, setFilter] = useState("");
 
@@ -67,9 +68,11 @@ function Sidebar({
   useEffect(() => {
     fetch("/api/madgraph/status")
       .then((r) => r.json())
-      .then((d) => setMadgraphAvailable(d.available))
-      .catch(() => setMadgraphAvailable(false));
+      .then((d) => setStatus(d))
+      .catch(() => setStatus(null));
   }, []);
+
+  const madgraphAvailable = status?.available || false;
 
   const toggleDrawer = () => setOpen(!open);
   const collapseAll = () => setExpandedItems({});
@@ -283,6 +286,43 @@ function Sidebar({
             ))}
           </List>
         )}
+        <Box
+          sx={{
+            mt: "auto",
+            px: 2,
+            py: 1,
+            borderTop: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Tooltip title={status?.working_directory || ""}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              component="div"
+            >
+              {status?.working_directory
+                ? status.working_directory.split("/").pop()
+                : "…"}
+            </Typography>
+          </Tooltip>
+          <Tooltip
+            title={
+              status?.madgraph_path ||
+              "Start MadBoard with --madgraph=<path> to generate processes"
+            }
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              component="div"
+            >
+              {madgraphAvailable ? "MadGraph found" : "No MadGraph executable"}
+            </Typography>
+          </Tooltip>
+        </Box>
       </Drawer>
       {!open && (
         <Box sx={{ display: "flex", alignItems: "flex-start", p: 0.5 }}>

@@ -54,7 +54,7 @@ function MainContent({
         }}
       >
         <Typography variant="h6" color="text.secondary">
-          Please select a process
+          Select a process to see its runs, cards and plots
         </Typography>
       </Box>
     );
