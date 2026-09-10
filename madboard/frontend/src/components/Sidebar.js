@@ -26,7 +26,20 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import AddProcessDialog from "./AddProcessDialog";
 
-const DRAWER_WIDTH = 280;
+const DEFAULT_DRAWER_WIDTH = 280;
+const MIN_DRAWER_WIDTH = 180;
+const MAX_DRAWER_WIDTH = 700;
+const WIDTH_STORAGE_KEY = "madboard.sidebarWidth";
+
+function storedWidth() {
+  try {
+    const value = Number(window.localStorage.getItem(WIDTH_STORAGE_KEY));
+    if (value >= MIN_DRAWER_WIDTH && value <= MAX_DRAWER_WIDTH) return value;
+  } catch {
+    // storage can be unavailable, fall back to the default width
+  }
+  return DEFAULT_DRAWER_WIDTH;
+}
 
 function Sidebar({
   onSelectProcess,
@@ -45,6 +58,46 @@ function Sidebar({
   const [status, setStatus] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filter, setFilter] = useState("");
+  const [width, setWidth] = useState(storedWidth);
+  const [resizing, setResizing] = useState(false);
+
+  // Drag the right edge of the drawer to give the process names more room
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMove = (event) => {
+      const next = Math.min(
+        MAX_DRAWER_WIDTH,
+        Math.max(MIN_DRAWER_WIDTH, event.clientX),
+      );
+      setWidth(next);
+    };
+    const handleUp = () => setResizing(false);
+
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+    // Keep the cursor and the text selection sane while dragging
+    const previousCursor = document.body.style.cursor;
+    const previousSelect = document.body.style.userSelect;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    return () => {
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousSelect;
+    };
+  }, [resizing]);
+
+  useEffect(() => {
+    if (resizing) return;
+    try {
+      window.localStorage.setItem(WIDTH_STORAGE_KEY, String(width));
+    } catch {
+      // a width that cannot be stored is not worth reporting
+    }
+  }, [width, resizing]);
 
   const fetchProcesses = async () => {
     try {
@@ -103,17 +156,35 @@ function Sidebar({
         anchor="left"
         open={open}
         sx={{
-          width: open ? DRAWER_WIDTH : 0,
+          width: open ? width : 0,
           flexShrink: 0,
           "& .MuiDrawer-paper": {
-            width: DRAWER_WIDTH,
+            width,
             boxSizing: "border-box",
-            overflowX: "hidden",
             display: "flex",
             flexDirection: "column",
+            overflowX: "hidden",
+            transition: resizing ? "none" : undefined,
           },
         }}
       >
+        <Box
+          onMouseDown={(event) => {
+            event.preventDefault();
+            setResizing(true);
+          }}
+          onDoubleClick={() => setWidth(DEFAULT_DRAWER_WIDTH)}
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: "5px",
+            cursor: "col-resize",
+            zIndex: 1200,
+            "&:hover": { backgroundColor: "primary.main", opacity: 0.4 },
+          }}
+        />
         <Box
           sx={{
             p: 2,
