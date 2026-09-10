@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Card,
   CardContent,
@@ -284,6 +285,13 @@ function MadNisTab({ selectedRun, runsData }) {
                   ))}
                 </Select>
               </FormControl>
+
+              {selectedRun && !runsWithMadnis.includes(selectedRun) && (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  {selectedRun} has no MadNIS training, showing{" "}
+                  {effectiveSingleRun} instead.
+                </Alert>
+              )}
 
               <Stack
                 direction="row"
