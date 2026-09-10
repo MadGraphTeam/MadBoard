@@ -262,7 +262,7 @@ def get_processes():
                 "runs": sorted(runs),
             }
         )
-    return {"processes": processes}, 200
+    return {"processes": sorted(processes, key=lambda p: p["name"])}, 200
 
 
 @api_bp.route("/processes/<process_name>", methods=["DELETE"])
@@ -290,7 +290,7 @@ def get_cards(process_name):
     for card_file in os.scandir(cards_dir):
         if card_file.is_file():
             cards.append(card_file.name)
-    return {"cards": cards}, 200
+    return {"cards": sorted(cards)}, 200
 
 
 @api_bp.route("/processes/<process_name>/cards/<card_name>", methods=["GET"])
