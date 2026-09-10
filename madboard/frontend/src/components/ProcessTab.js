@@ -218,6 +218,9 @@ function ProcessTab({
       filterable: false,
       renderCell: (params) => (
         <Box
+          // The row itself opens the run, so the buttons have to keep their
+          // clicks to themselves
+          onClick={(event) => event.stopPropagation()}
           sx={{
             display: "flex",
             gap: 0.5,
