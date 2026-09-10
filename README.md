@@ -5,6 +5,8 @@ event generator.
 
 ## Installation
 
+MadBoard requires Python 3.11 or newer.
+
 ```bash
 pip install madboard
 ```
