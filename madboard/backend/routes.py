@@ -91,6 +91,24 @@ def madgraph_status():
     }, 200
 
 
+@api_bp.route("/madgraph/models", methods=["GET"])
+def get_models():
+    """List the UFO models shipped next to the MadGraph executable."""
+    path = current_app.config.get("MADGRAPH_PATH")
+    if not path:
+        return {"models": []}, 200
+    # bin/madgraph -> the models directory of the same installation
+    models_dir = os.path.join(os.path.dirname(os.path.dirname(path)), "models")
+    if not os.path.isdir(models_dir):
+        return {"models": []}, 200
+    models = [
+        entry.name
+        for entry in os.scandir(models_dir)
+        if entry.is_dir() and os.path.isfile(os.path.join(entry.path, "particles.py"))
+    ]
+    return {"models": sorted(models)}, 200
+
+
 @api_bp.route("/madgraph/generate", methods=["POST"])
 def madgraph_generate():
     """Start a MadGraph generate+output run and return a task ID."""
@@ -99,10 +117,16 @@ def madgraph_generate():
         return {"error": "MadGraph executable not available"}, 503
 
     data = request.json or {}
-    process_str = data.get("process", "").strip()
+    # A process definition is one "generate" line plus any number of
+    # "add process" lines; a single string stays valid as the one line
+    processes = data.get("processes")
+    if processes is None:
+        processes = [data.get("process", "")]
+    processes = [line.strip() for line in processes if line and line.strip()]
+    model = (data.get("model") or "").strip()
     name = data.get("name", "").strip()
 
-    if not process_str or not name:
+    if not processes or not name:
         return {"error": "process and name are required"}, 400
 
     task_id = str(_uuid.uuid4())
@@ -110,7 +134,13 @@ def madgraph_generate():
     with _tasks_lock:
         _tasks[task_id] = task
 
-    stdin_input = f"generate {process_str}\noutput {name}\n"
+    commands = []
+    if model:
+        commands.append(f"import model {model}")
+    commands.append(f"generate {processes[0]}")
+    commands.extend(f"add process {line}" for line in processes[1:])
+    commands.append(f"output {name}")
+    stdin_input = "".join(f"{command}\n" for command in commands)
 
     def _run():
         try:

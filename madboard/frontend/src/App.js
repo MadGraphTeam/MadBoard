@@ -241,12 +241,12 @@ function App({ isDarkMode, onThemeToggle }) {
   // ── MadGraph task management ────────────────────────────────────────────────
 
   const handleAddProcess = useCallback(
-    async (processStr, processName) => {
+    async (processes, processName, model) => {
       try {
         const resp = await fetch("/api/madgraph/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ process: processStr, name: processName }),
+          body: JSON.stringify({ processes, name: processName, model }),
         });
         if (!resp.ok) {
           notify(await errorMessage(resp, "Failed to start MadGraph"));

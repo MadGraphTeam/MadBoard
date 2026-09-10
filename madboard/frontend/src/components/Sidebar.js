@@ -145,8 +145,8 @@ function Sidebar({
     );
   }, [processes, filter]);
 
-  const handleDialogSubmit = (processStr, processName) => {
-    onAddProcess(processStr, processName);
+  const handleDialogSubmit = (processes, processName, model) => {
+    onAddProcess(processes, processName, model);
   };
 
   return (
