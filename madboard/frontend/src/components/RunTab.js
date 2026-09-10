@@ -15,7 +15,11 @@ import {
   formatRSD,
   formatEfficiency,
 } from "../utils/formatting";
-import { HEADER_HEIGHT, WRAPPED_HEADER_SX } from "../utils/dataGrid";
+import {
+  COMPACT_GRID_SX,
+  ROW_HEIGHT,
+  withHeaderTooltips,
+} from "../utils/dataGrid";
 
 // The "before cuts" variants repeat the "after cuts" ones for most runs; they
 // stay available in the column menu
@@ -304,10 +308,10 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
         </Typography>
         <DataGrid
           rows={subprocessesRows}
-          columns={subprocessesColumns}
+          columns={withHeaderTooltips(subprocessesColumns)}
           autoHeight
-          columnHeaderHeight={HEADER_HEIGHT}
-          sx={WRAPPED_HEADER_SX}
+          columnHeaderHeight={ROW_HEIGHT}
+          sx={COMPACT_GRID_SX}
           initialState={{ columns: { columnVisibilityModel: HIDDEN_COLUMNS } }}
         />
       </Box>
@@ -317,10 +321,10 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
         </Typography>
         <DataGrid
           rows={channelsRows}
-          columns={channelsColumns}
+          columns={withHeaderTooltips(channelsColumns)}
           autoHeight
-          columnHeaderHeight={HEADER_HEIGHT}
-          sx={WRAPPED_HEADER_SX}
+          columnHeaderHeight={ROW_HEIGHT}
+          sx={COMPACT_GRID_SX}
           initialState={{ columns: { columnVisibilityModel: HIDDEN_COLUMNS } }}
         />
       </Box>

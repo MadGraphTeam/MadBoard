@@ -13,7 +13,11 @@ import {
   Typography,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { HEADER_HEIGHT, WRAPPED_HEADER_SX } from "../utils/dataGrid";
+import {
+  COMPACT_GRID_SX,
+  ROW_HEIGHT,
+  withHeaderTooltips,
+} from "../utils/dataGrid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -286,12 +290,12 @@ function ProcessTab({
       ) : (
         <DataGrid
           rows={rows}
-          columns={columns}
+          columns={withHeaderTooltips(columns)}
           onRowClick={handleRowClick}
           autoHeight
-          columnHeaderHeight={HEADER_HEIGHT}
+          columnHeaderHeight={ROW_HEIGHT}
           sx={{
-            ...WRAPPED_HEADER_SX,
+            ...COMPACT_GRID_SX,
             "& .MuiDataGrid-row": { cursor: "pointer" },
           }}
         />
