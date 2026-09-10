@@ -53,8 +53,7 @@ function DiagramCard({ diagram, isDarkMode, onClick }) {
         gap: 0.5,
         position: "relative",
         "&:hover": { bgcolor: "action.hover" },
-        width: 330,
-        flexShrink: 0,
+        minWidth: 0,
       }}
     >
       {hovered && (
@@ -145,12 +144,23 @@ function SubprocessSection({ processName, subprocName, isDarkMode }) {
           <Typography variant="subtitle1" fontFamily="monospace">
             {subprocName}
           </Typography>
+          {diagrams && (
+            <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+              {diagrams.length} diagram{diagrams.length === 1 ? "" : "s"}
+            </Typography>
+          )}
         </AccordionSummary>
         <AccordionDetails>
           {loading && <CircularProgress size={24} />}
           {error && <Alert severity="error">{error}</Alert>}
           {diagrams && (
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                gap: 2,
+              }}
+            >
               {diagrams.map((diagram) => (
                 <DiagramCard
                   key={diagram.diagram_number}
