@@ -15,7 +15,7 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import {
   COMPACT_GRID_SX,
-  ROW_HEIGHT,
+  HEADER_HEIGHT,
   withHeaderTooltips,
 } from "../utils/dataGrid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -296,7 +296,7 @@ function ProcessTab({
           columns={withHeaderTooltips(columns)}
           onRowClick={handleRowClick}
           autoHeight
-          columnHeaderHeight={ROW_HEIGHT}
+          columnHeaderHeight={HEADER_HEIGHT}
           sx={{
             ...COMPACT_GRID_SX,
             "& .MuiDataGrid-row": { cursor: "pointer" },

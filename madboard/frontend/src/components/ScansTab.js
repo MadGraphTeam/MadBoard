@@ -16,7 +16,7 @@ import {
 import { DataGrid } from "@mui/x-data-grid";
 import {
   COMPACT_GRID_SX,
-  ROW_HEIGHT,
+  HEADER_HEIGHT,
   withHeaderTooltips,
 } from "../utils/dataGrid";
 import {
@@ -288,7 +288,7 @@ function ScansTab({ selectedRun, scans }) {
               rows={rows}
               columns={withHeaderTooltips(columns)}
               autoHeight
-              columnHeaderHeight={ROW_HEIGHT}
+              columnHeaderHeight={HEADER_HEIGHT}
               sx={COMPACT_GRID_SX}
             />
           </Box>

@@ -17,7 +17,7 @@ import {
 } from "../utils/formatting";
 import {
   COMPACT_GRID_SX,
-  ROW_HEIGHT,
+  HEADER_HEIGHT,
   withHeaderTooltips,
 } from "../utils/dataGrid";
 
@@ -310,7 +310,7 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
           rows={subprocessesRows}
           columns={withHeaderTooltips(subprocessesColumns)}
           autoHeight
-          columnHeaderHeight={ROW_HEIGHT}
+          columnHeaderHeight={HEADER_HEIGHT}
           sx={COMPACT_GRID_SX}
           initialState={{ columns: { columnVisibilityModel: HIDDEN_COLUMNS } }}
         />
@@ -323,7 +323,7 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
           rows={channelsRows}
           columns={withHeaderTooltips(channelsColumns)}
           autoHeight
-          columnHeaderHeight={ROW_HEIGHT}
+          columnHeaderHeight={HEADER_HEIGHT}
           sx={COMPACT_GRID_SX}
           initialState={{ columns: { columnVisibilityModel: HIDDEN_COLUMNS } }}
         />

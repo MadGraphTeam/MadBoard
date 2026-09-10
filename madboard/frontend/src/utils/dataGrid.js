@@ -1,5 +1,12 @@
-// The grids run at the compact density set in the theme; header and footer are
-// pinned to the same height so that a table reads as one evenly spaced block.
+// The grids run at the compact density set in the theme, which scales the row
+// and header heights by the same factor. Handing the header the default row
+// height therefore lands it on exactly the row height (36px), where the
+// default header height of 56 would make it taller.
+export const HEADER_HEIGHT = 52;
+
+// What the scaled rows actually measure, for the parts the density does not
+// touch: header and footer are pinned to it so a table reads as one evenly
+// spaced block.
 export const ROW_HEIGHT = 36;
 
 export const COMPACT_GRID_SX = {
