@@ -42,8 +42,8 @@ def run_server(port=5000):
     parser.add_argument(
         "--madgraph",
         type=str,
-        default="bin/mg5_aMC",
-        help="Path to MadGraph executable (default: bin/mg5_aMC)",
+        default="bin/madgraph",
+        help="Path to MadGraph executable (default: bin/madgraph)",
     )
     args = parser.parse_args()
 
@@ -54,7 +54,7 @@ def run_server(port=5000):
         print(
             f"MadGraph executable not found at '{madgraph_path}'. "
             "Process generation will be unavailable.\n"
-            f"  Hint: use --madgraph=<path> to specify the mg5_aMC executable."
+            f"  Hint: use --madgraph=<path> to specify the MadGraph executable."
         )
         madgraph_path = None
 

@@ -19,11 +19,11 @@ madboard
 
 MadBoard listens on `127.0.0.1:5000` (the next free port is used if 5000 is taken) and
 opens the interface in your browser. By default it looks for the MadGraph executable at
-`bin/mg5_aMC`; use `--madgraph` to point it elsewhere, and `--port` to choose a
+`bin/madgraph`; use `--madgraph` to point it elsewhere, and `--port` to choose a
 different port:
 
 ```bash
-madboard --madgraph /path/to/mg5_aMC --port 8080
+madboard --madgraph /path/to/madgraph --port 8080
 ```
 
 Without a MadGraph executable, MadBoard still runs, but process generation is
