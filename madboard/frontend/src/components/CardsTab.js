@@ -26,21 +26,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RestoreIcon from "@mui/icons-material/Restore";
 import Editor from "@monaco-editor/react";
 import { errorMessage, useNotify } from "./Notifications";
-
-// A process directory holds a handful of cards that are actually used next to
-// a dozen untouched templates ("*_default.*") and the cards MadGraph has
-// switched off by prefixing them with a dot. Only the first group is of
-// interest most of the time.
-function isTemplate(cardName) {
-  return cardName.startsWith(".") || /_default\.[^.]+$/.test(cardName);
-}
-
-/** Name of the template a card can be reset to, e.g. run_card_default.toml */
-function defaultCardName(cardName) {
-  const dot = cardName.lastIndexOf(".");
-  if (dot <= 0) return `${cardName}_default`;
-  return `${cardName.slice(0, dot)}_default${cardName.slice(dot)}`;
-}
+import { defaultCardName, isTemplate } from "../utils/cards";
 
 function CardsTab({ selectedProcess, isDarkMode }) {
   const notify = useNotify();
