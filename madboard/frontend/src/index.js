@@ -59,6 +59,25 @@ function AppWithTheme() {
         main: "#dc004e",
       },
     },
+    // Tables and lists show many short entries, so they use the compact
+    // variants throughout to fit more rows on screen
+    components: {
+      MuiDataGrid: {
+        defaultProps: { density: "compact" },
+      },
+      MuiList: {
+        defaultProps: { dense: true },
+      },
+      MuiListItemButton: {
+        defaultProps: { dense: true },
+      },
+      MuiMenuItem: {
+        defaultProps: { dense: true },
+      },
+      MuiListItemIcon: {
+        styleOverrides: { root: { minWidth: 36 } },
+      },
+    },
   });
 
   const handleThemeToggle = () => {
