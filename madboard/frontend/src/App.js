@@ -29,8 +29,21 @@ import MainContent from "./components/MainContent";
 import DiagramsTab from "./components/DiagramsTab";
 import TaskOutputModal from "./components/TaskOutputModal";
 
+// Tabs are addressed by name: which tabs exist depends on the selected
+// process and run, so a positional index would silently point at a different
+// tab whenever that set changes.
+const TAB_LABELS = {
+  process: "Process",
+  run: "Run",
+  cards: "Cards",
+  histograms: "Histograms",
+  madnis: "MadNIS",
+  scans: "Scans",
+  diagrams: "Diagrams",
+};
+
 function App({ isDarkMode, onThemeToggle }) {
-  const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedTab, setSelectedTab] = useState("process");
   const [selectedProcess, setSelectedProcess] = useState(null);
   const [selectedRun, setSelectedRun] = useState(null);
   const [runsData, setRunsData] = useState({});
@@ -67,6 +80,31 @@ function App({ isDarkMode, onThemeToggle }) {
 
   const hasDiagramsAvailable = subprocesses.length > 0;
 
+  const availableTabs = useMemo(() => {
+    const tabs = ["process"];
+    if (selectedRun) tabs.push("run");
+    tabs.push("cards");
+    if (hasPlotsAvailable) tabs.push("histograms");
+    if (hasMadnisAvailable) tabs.push("madnis");
+    if (hasScansAvailable) tabs.push("scans");
+    if (hasDiagramsAvailable) tabs.push("diagrams");
+    return tabs;
+  }, [
+    selectedRun,
+    hasPlotsAvailable,
+    hasMadnisAvailable,
+    hasScansAvailable,
+    hasDiagramsAvailable,
+  ]);
+
+  // Fall back to the process tab when the active one no longer exists, e.g.
+  // after switching to a process without histograms
+  useEffect(() => {
+    if (!availableTabs.includes(selectedTab)) {
+      setSelectedTab("process");
+    }
+  }, [availableTabs, selectedTab]);
+
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
   };
@@ -75,7 +113,7 @@ function App({ isDarkMode, onThemeToggle }) {
     if (process !== selectedProcess) {
       setSelectedProcess(process);
       setSelectedRun(null);
-      setSelectedTab(0);
+      setSelectedTab("process");
       setRunsData({});
       setSubprocesses([]);
       setScans([]);
@@ -88,7 +126,7 @@ function App({ isDarkMode, onThemeToggle }) {
 
   const handleSelectRunAndNavigate = (run) => {
     setSelectedRun(run);
-    setSelectedTab(1);
+    setSelectedTab("run");
   };
 
   const handleRefreshProcess = async () => {
@@ -112,7 +150,7 @@ function App({ isDarkMode, onThemeToggle }) {
   const handleDeleteProcess = async () => {
     setSelectedProcess(null);
     setSelectedRun(null);
-    setSelectedTab(0);
+    setSelectedTab("process");
     setRunsData({});
     window.location.reload();
   };
@@ -232,13 +270,6 @@ function App({ isDarkMode, onThemeToggle }) {
   const runningCount = tasks.filter((t) => t.status === "running").length;
   const openTask = tasks.find((t) => t.id === openTaskId) ?? null;
 
-  const diagramsTabIndex =
-    (selectedRun ? 1 : 0) +
-    2 +
-    (hasPlotsAvailable ? 1 : 0) +
-    (hasMadnisAvailable ? 1 : 0) +
-    (hasScansAvailable ? 1 : 0);
-
   return (
     <Layout>
       <Sidebar
@@ -304,19 +335,15 @@ function App({ isDarkMode, onThemeToggle }) {
               textColor="inherit"
               indicatorColor="secondary"
             >
-              <Tab label="Process" />
-              {selectedRun && <Tab label="Run" />}
-              <Tab label="Cards" />
-              {hasPlotsAvailable && <Tab label="Histograms" />}
-              {hasMadnisAvailable && <Tab label="MadNIS" />}
-              {hasScansAvailable && <Tab label="Scans" />}
-              {hasDiagramsAvailable && <Tab label="Diagrams" />}
+              {availableTabs.map((tab) => (
+                <Tab key={tab} value={tab} label={TAB_LABELS[tab]} />
+              ))}
             </Tabs>
           )}
         </AppBar>
 
         <Box sx={{ flexGrow: 1, p: 3, overflow: "auto" }}>
-          {selectedTab !== diagramsTabIndex || !hasDiagramsAvailable ? (
+          {selectedTab !== "diagrams" ? (
             <MainContent
               selectedProcess={selectedProcess}
               selectedRun={selectedRun}

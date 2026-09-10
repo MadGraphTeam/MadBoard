@@ -43,15 +43,6 @@ function MainContent({
 
   const hasScansAvailable = scans.length > 0;
 
-  const cardsTabIndex = selectedRun ? 2 : 1;
-  const histogramsTabIndex = hasPlotsAvailable ? cardsTabIndex + 1 : null;
-  const madnisTabIndex = hasMadnisAvailable
-    ? (histogramsTabIndex ?? cardsTabIndex) + 1
-    : null;
-  const scansTabIndex = hasScansAvailable
-    ? (madnisTabIndex ?? histogramsTabIndex ?? cardsTabIndex) + 1
-    : null;
-
   if (!selectedProcess) {
     return (
       <Box
@@ -71,7 +62,7 @@ function MainContent({
 
   return (
     <Box>
-      {selectedTab === 0 && (
+      {selectedTab === "process" && (
         <ProcessTab
           selectedProcess={selectedProcess}
           onSelectRun={onSelectRun}
@@ -83,23 +74,23 @@ function MainContent({
           onRunStarted={onRunStarted}
         />
       )}
-      {selectedTab === 1 && selectedRun && (
+      {selectedTab === "run" && selectedRun && (
         <RunTab
           selectedProcess={selectedProcess}
           selectedRun={selectedRun}
           runsData={runsData}
         />
       )}
-      {selectedTab === cardsTabIndex && (
+      {selectedTab === "cards" && (
         <CardsTab selectedProcess={selectedProcess} isDarkMode={isDarkMode} />
       )}
-      {hasPlotsAvailable && selectedTab === histogramsTabIndex && (
+      {hasPlotsAvailable && selectedTab === "histograms" && (
         <PlotsTab selectedRun={selectedRun} runsData={runsData} />
       )}
-      {hasMadnisAvailable && selectedTab === madnisTabIndex && (
+      {hasMadnisAvailable && selectedTab === "madnis" && (
         <MadNisTab selectedRun={selectedRun} runsData={runsData} />
       )}
-      {hasScansAvailable && selectedTab === scansTabIndex && (
+      {hasScansAvailable && selectedTab === "scans" && (
         <ScansTab selectedRun={selectedRun} scans={scans} />
       )}
     </Box>
