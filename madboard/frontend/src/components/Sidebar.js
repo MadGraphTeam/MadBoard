@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Alert,
   Box,
@@ -11,6 +11,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  TextField,
   Tooltip,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -19,11 +20,12 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileIcon from "@mui/icons-material/Description";
 import FolderIcon from "@mui/icons-material/Folder";
 import MenuIcon from "@mui/icons-material/Menu";
+import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import AddProcessDialog from "./AddProcessDialog";
 
-const DRAWER_WIDTH = 360;
+const DRAWER_WIDTH = 280;
 
 function Sidebar({
   onSelectProcess,
@@ -40,6 +42,7 @@ function Sidebar({
   const [error, setError] = useState(null);
   const [madgraphAvailable, setMadgraphAvailable] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [filter, setFilter] = useState("");
 
   const fetchProcesses = async () => {
     try {
@@ -77,6 +80,14 @@ function Sidebar({
       [itemLabel]: !prev[itemLabel],
     }));
   };
+
+  const visibleProcesses = useMemo(() => {
+    const needle = filter.trim().toLowerCase();
+    if (!needle) return processes;
+    return processes.filter((process) =>
+      process.name.toLowerCase().includes(needle),
+    );
+  }, [processes, filter]);
 
   const handleDialogSubmit = (processStr, processName) => {
     onAddProcess(processStr, processName);
@@ -137,6 +148,22 @@ function Sidebar({
             </IconButton>
           </Box>
         </Box>
+        <Box sx={{ px: 2, py: 1 }}>
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="Filter processes"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <SearchIcon fontSize="small" sx={{ mr: 1, opacity: 0.6 }} />
+                ),
+              },
+            }}
+          />
+        </Box>
         {loading && (
           <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
             <CircularProgress size={40} />
@@ -149,7 +176,18 @@ function Sidebar({
         )}
         {!loading && !error && (
           <List sx={{ overflow: "auto", flexGrow: 1 }}>
-            {processes.map((process) => (
+            {visibleProcesses.length === 0 && (
+              <Box sx={{ px: 2, py: 1 }}>
+                <ListItemText
+                  secondary={
+                    processes.length === 0
+                      ? "No processes found"
+                      : "No process matches the filter"
+                  }
+                />
+              </Box>
+            )}
+            {visibleProcesses.map((process) => (
               <React.Fragment key={process.name}>
                 <ListItem disablePadding>
                   <ListItemButton
@@ -176,7 +214,12 @@ function Sidebar({
                       <ListItemIcon>
                         <FolderIcon />
                       </ListItemIcon>
-                      <ListItemText primary={process.name} />
+                      <Tooltip title={process.name} enterDelay={700}>
+                        <ListItemText
+                          primary={process.name}
+                          slotProps={{ primary: { noWrap: true } }}
+                        />
+                      </Tooltip>
                     </Box>
                     <IconButton
                       edge="end"
@@ -227,7 +270,10 @@ function Sidebar({
                           <ListItemIcon sx={{ minWidth: 40 }}>
                             <FileIcon />
                           </ListItemIcon>
-                          <ListItemText primary={run} />
+                          <ListItemText
+                            primary={run}
+                            slotProps={{ primary: { noWrap: true } }}
+                          />
                         </ListItemButton>
                       </ListItem>
                     ))}
@@ -239,10 +285,12 @@ function Sidebar({
         )}
       </Drawer>
       {!open && (
-        <Box sx={{ display: "flex", alignItems: "center", p: 1 }}>
-          <IconButton onClick={toggleDrawer} size="small">
-            <MenuIcon />
-          </IconButton>
+        <Box sx={{ display: "flex", alignItems: "flex-start", p: 0.5 }}>
+          <Tooltip title="Show processes">
+            <IconButton onClick={toggleDrawer} size="small">
+              <MenuIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       )}
       <AddProcessDialog
