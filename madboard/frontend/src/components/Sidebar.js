@@ -108,6 +108,7 @@ function Sidebar({
           "& .MuiDrawer-paper": {
             width: DRAWER_WIDTH,
             boxSizing: "border-box",
+            overflowX: "hidden",
             display: "flex",
             flexDirection: "column",
           },
@@ -214,9 +215,15 @@ function Sidebar({
                     onClick={() => onSelectProcess(process.name)}
                   >
                     <Box
-                      sx={{ display: "flex", alignItems: "center", flex: 1 }}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: "hidden",
+                      }}
                     >
-                      <ListItemIcon>
+                      <ListItemIcon sx={{ flexShrink: 0 }}>
                         <FolderIcon />
                       </ListItemIcon>
                       <Tooltip title={process.name} enterDelay={700}>
@@ -233,7 +240,7 @@ function Sidebar({
                         e.stopPropagation();
                         toggleExpanded(process.name);
                       }}
-                      sx={{ mr: 1 }}
+                      sx={{ mr: 1, flexShrink: 0 }}
                     >
                       {expandedItems[process.name] ? (
                         <ExpandLessIcon />
@@ -254,6 +261,7 @@ function Sidebar({
                         <ListItemButton
                           sx={{
                             pl: 6,
+                            minWidth: 0,
                             backgroundColor:
                               selectedRun === run &&
                               selectedProcess === process.name
@@ -272,7 +280,7 @@ function Sidebar({
                             onSelectRun(run);
                           }}
                         >
-                          <ListItemIcon sx={{ minWidth: 40 }}>
+                          <ListItemIcon sx={{ minWidth: 40, flexShrink: 0 }}>
                             <FileIcon />
                           </ListItemIcon>
                           <ListItemText
