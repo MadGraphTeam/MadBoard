@@ -430,11 +430,6 @@ function MadNisTab({ selectedRun, runsData }) {
                       tickFormatter={
                         scale === "log" ? formatScientificTick : undefined
                       }
-                      label={{
-                        value: formatQuantityName(key),
-                        angle: -90,
-                        position: "insideLeft",
-                      }}
                     />
                     <Legend />
 
