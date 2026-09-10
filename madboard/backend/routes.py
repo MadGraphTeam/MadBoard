@@ -368,6 +368,25 @@ def update_card(process_name, card_name):
     return {"message": "Card updated successfully"}, 200
 
 
+# Javascript numbers cannot hold a 64 bit integer, so values that would lose
+# digits on the way to the browser are sent as strings
+MAX_EXACT_INT = 2**53 - 1
+
+
+def stringify_big_ints(info):
+    """Return info with integers too large for a JS number turned into text."""
+    return {
+        key: (
+            str(value)
+            if isinstance(value, int)
+            and not isinstance(value, bool)
+            and abs(value) > MAX_EXACT_INT
+            else value
+        )
+        for key, value in info.items()
+    }
+
+
 @api_bp.route("/processes/<process_name>/runs", methods=["GET"])
 def get_runs(process_name):
     """Get list of runs for a specific process."""
@@ -393,7 +412,7 @@ def get_runs(process_name):
             ]
             runs.append(
                 {
-                    **info,
+                    **stringify_big_ints(info),
                     "name": run_dir.name,
                     "files": files,
                 }
@@ -434,7 +453,7 @@ def get_run_info(process_name, run_name):
     ]
     with open(info_file, "r") as f:
         info = json.load(f)
-    return {**info, "files": files}, 200
+    return {**stringify_big_ints(info), "files": files}, 200
 
 
 @api_bp.route(

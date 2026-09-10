@@ -13,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { HEADER_HEIGHT, WRAPPED_HEADER_SX } from "../utils/dataGrid";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -288,7 +289,11 @@ function ProcessTab({
           columns={columns}
           onRowClick={handleRowClick}
           autoHeight
-          sx={{ "& .MuiDataGrid-row": { cursor: "pointer" } }}
+          columnHeaderHeight={HEADER_HEIGHT}
+          sx={{
+            ...WRAPPED_HEADER_SX,
+            "& .MuiDataGrid-row": { cursor: "pointer" },
+          }}
         />
       )}
 

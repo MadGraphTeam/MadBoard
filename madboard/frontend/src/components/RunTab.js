@@ -15,15 +15,7 @@ import {
   formatRSD,
   formatEfficiency,
 } from "../utils/formatting";
-
-// Header names are long enough to be cut off in a narrow column, so let them
-// wrap instead of truncating
-const GRID_SX = {
-  "& .MuiDataGrid-columnHeaderTitle": {
-    whiteSpace: "normal",
-    lineHeight: 1.3,
-  },
-};
+import { HEADER_HEIGHT, WRAPPED_HEADER_SX } from "../utils/dataGrid";
 
 // The "before cuts" variants repeat the "after cuts" ones for most runs; they
 // stay available in the column menu
@@ -282,10 +274,8 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
               {selectedProcess}
             </Typography>
           </Stack>
-          <Stack
-            direction="row"
-            spacing={4}
-            sx={{ flexWrap: "wrap", rowGap: 2 }}
+          <Box
+            sx={{ display: "flex", flexWrap: "wrap", columnGap: 5, rowGap: 2 }}
           >
             <SummaryItem
               label="Cross section (pb)"
@@ -304,7 +294,7 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
               <SummaryItem label="Run time" value={summary.runTime} />
             )}
             {summary.seed && <SummaryItem label="Seed" value={summary.seed} />}
-          </Stack>
+          </Box>
         </CardContent>
       </Card>
 
@@ -316,8 +306,8 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
           rows={subprocessesRows}
           columns={subprocessesColumns}
           autoHeight
-          columnHeaderHeight={64}
-          sx={GRID_SX}
+          columnHeaderHeight={HEADER_HEIGHT}
+          sx={WRAPPED_HEADER_SX}
           initialState={{ columns: { columnVisibilityModel: HIDDEN_COLUMNS } }}
         />
       </Box>
@@ -329,8 +319,8 @@ function RunTab({ selectedProcess, selectedRun, runsData }) {
           rows={channelsRows}
           columns={channelsColumns}
           autoHeight
-          columnHeaderHeight={64}
-          sx={GRID_SX}
+          columnHeaderHeight={HEADER_HEIGHT}
+          sx={WRAPPED_HEADER_SX}
           initialState={{ columns: { columnVisibilityModel: HIDDEN_COLUMNS } }}
         />
       </Box>

@@ -14,6 +14,7 @@ import {
   InputLabel,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { HEADER_HEIGHT, WRAPPED_HEADER_SX } from "../utils/dataGrid";
 import {
   ComposedChart,
   Line,
@@ -279,7 +280,13 @@ function ScansTab({ selectedRun, scans }) {
             Scan {scan.name}
           </Typography>
           <Box sx={{ width: "100%" }}>
-            <DataGrid rows={rows} columns={columns} autoHeight />
+            <DataGrid
+              rows={rows}
+              columns={columns}
+              autoHeight
+              columnHeaderHeight={HEADER_HEIGHT}
+              sx={WRAPPED_HEADER_SX}
+            />
           </Box>
         </CardContent>
       </Card>
