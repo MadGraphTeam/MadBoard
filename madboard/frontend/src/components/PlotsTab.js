@@ -17,9 +17,11 @@ import {
   YAxis,
   CartesianGrid,
   Legend,
+  Tooltip,
   ResponsiveContainer,
 } from "recharts";
 import { formatScientificTick, RUN_COLORS } from "../utils/formatting";
+import ChartTooltip from "./ChartTooltip";
 
 function PlotsTab({ selectedRun, runsData }) {
   const [scales, setScales] = useState({}); // Track linear/log scale per histogram
@@ -218,7 +220,11 @@ function PlotsTab({ selectedRun, runsData }) {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+          gridTemplateColumns: {
+            xs: "1fr",
+            md: "repeat(2, 1fr)",
+            xl: "repeat(3, 1fr)",
+          },
           gap: 3,
         }}
       >
@@ -285,6 +291,9 @@ function PlotsTab({ selectedRun, runsData }) {
                           angle: -90,
                           position: "insideLeft",
                         }}
+                      />
+                      <Tooltip
+                        content={<ChartTooltip xLabel={histogramName} />}
                       />
                       <Legend />
 

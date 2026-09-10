@@ -22,9 +22,15 @@ import {
   YAxis,
   CartesianGrid,
   Legend,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
-import { formatScientificTick, RUN_COLORS } from "../utils/formatting";
+import {
+  formatNumber,
+  formatScientificTick,
+  RUN_COLORS,
+} from "../utils/formatting";
+import ChartTooltip from "./ChartTooltip";
 
 // The scan summary lists the cross section and its error as two independent
 // result columns; the error is drawn as a band around the cross section
@@ -35,15 +41,6 @@ const ERROR_KEYS = { "cross(pb)": "error(pb)" };
 // resolve it, the raw block#id otherwise
 function parameterLabel(parameter) {
   return parameter.name || parameter.id;
-}
-
-function formatValue(value) {
-  if (value === null || value === undefined) return "—";
-  if (typeof value !== "number") return String(value);
-  if (value === 0) return "0";
-  const magnitude = Math.abs(value);
-  if (magnitude < 1e-3 || magnitude >= 1e5) return value.toExponential(4);
-  return String(Number(value.toPrecision(6)));
 }
 
 function ScansTab({ selectedRun, scans }) {
@@ -81,12 +78,12 @@ function ScansTab({ selectedRun, scans }) {
       points.map((point, index) => {
         const row = { id: index, run_name: point.run_name };
         parameters.forEach((parameter) => {
-          row[`param_${parameter.id}`] = formatValue(
+          row[`param_${parameter.id}`] = formatNumber(
             (point.parameters || {})[parameter.id],
           );
         });
         resultKeys.forEach((key) => {
-          row[`result_${key}`] = formatValue((point.results || {})[key]);
+          row[`result_${key}`] = formatNumber((point.results || {})[key]);
         });
         row.exception = point.exception || "";
         return row;
@@ -152,7 +149,7 @@ function ScansTab({ selectedRun, scans }) {
         const label = otherParameters
           .map(
             (p) =>
-              `${parameterLabel(p)} = ${formatValue(
+              `${parameterLabel(p)} = ${formatNumber(
                 (point.parameters || {})[p.id],
               )}`,
           )
@@ -300,7 +297,11 @@ function ScansTab({ selectedRun, scans }) {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" },
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "repeat(2, 1fr)",
+              xl: "repeat(3, 1fr)",
+            },
             gap: 3,
           }}
         >
@@ -346,6 +347,11 @@ function ScansTab({ selectedRun, scans }) {
                         domain={["auto", "auto"]}
                         tickFormatter={
                           scale === "log" ? formatScientificTick : undefined
+                        }
+                      />
+                      <RechartsTooltip
+                        content={
+                          <ChartTooltip xLabel={parameterLabel(xParameter)} />
                         }
                       />
                       {series.length > 1 && <Legend />}

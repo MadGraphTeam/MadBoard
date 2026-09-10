@@ -120,3 +120,19 @@ export const RUN_COLORS = [
   "#a4de6c",
   "#ffc658",
 ];
+
+/**
+ * Format a number for tables and tooltips: plain digits in the range where
+ * they are readable, scientific notation outside of it
+ * @param {number} value - The value to format
+ * @returns {string} Formatted value
+ */
+export function formatNumber(value) {
+  if (value === null || value === undefined) return "—";
+  if (typeof value !== "number") return String(value);
+  if (!Number.isFinite(value)) return String(value);
+  if (value === 0) return "0";
+  const magnitude = Math.abs(value);
+  if (magnitude < 1e-3 || magnitude >= 1e5) return value.toExponential(4);
+  return String(Number(value.toPrecision(6)));
+}
