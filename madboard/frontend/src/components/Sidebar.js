@@ -35,8 +35,9 @@ function Sidebar({
   selectedRun,
   onAddProcess,
   refreshKey,
+  open,
+  onToggle,
 }) {
-  const [open, setOpen] = useState(true);
   const [expandedItems, setExpandedItems] = useState({});
   const [processes, setProcesses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +75,6 @@ function Sidebar({
 
   const madgraphAvailable = status?.available || false;
 
-  const toggleDrawer = () => setOpen(!open);
   const collapseAll = () => setExpandedItems({});
 
   const toggleExpanded = (itemLabel) => {
@@ -146,9 +146,11 @@ function Sidebar({
             <IconButton onClick={collapseAll} size="small" title="Collapse all">
               <UnfoldLessIcon />
             </IconButton>
-            <IconButton onClick={toggleDrawer} size="small" title="Toggle menu">
-              <MenuIcon />
-            </IconButton>
+            <Tooltip title="Hide process list">
+              <IconButton onClick={onToggle} size="small">
+                <MenuIcon />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
         <Box sx={{ px: 2, py: 1 }}>
@@ -324,15 +326,6 @@ function Sidebar({
           </Tooltip>
         </Box>
       </Drawer>
-      {!open && (
-        <Box sx={{ display: "flex", alignItems: "flex-start", p: 0.5 }}>
-          <Tooltip title="Show processes">
-            <IconButton onClick={toggleDrawer} size="small">
-              <MenuIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      )}
       <AddProcessDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}

@@ -23,6 +23,7 @@ import {
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import MenuIcon from "@mui/icons-material/Menu";
 import Layout from "./components/Layout";
 import Sidebar from "./components/Sidebar";
 import MainContent from "./components/MainContent";
@@ -60,6 +61,7 @@ function App({ isDarkMode, onThemeToggle }) {
   const [openTaskId, setOpenTaskId] = useState(null);
   const [tasksMenuAnchor, setTasksMenuAnchor] = useState(null);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const hasPlotsAvailable = useMemo(() => {
     return Object.values(runsData).some(
@@ -297,6 +299,8 @@ function App({ isDarkMode, onThemeToggle }) {
         selectedRun={selectedRun}
         onAddProcess={handleAddProcess}
         refreshKey={sidebarRefreshKey}
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen((value) => !value)}
       />
       <Box
         component="main"
@@ -309,6 +313,17 @@ function App({ isDarkMode, onThemeToggle }) {
       >
         <AppBar position="sticky" sx={{ top: 0, zIndex: 1200 }}>
           <Toolbar>
+            {!sidebarOpen && (
+              <Tooltip title="Show processes">
+                <IconButton
+                  onClick={() => setSidebarOpen(true)}
+                  color="inherit"
+                  sx={{ mr: 1 }}
+                >
+                  <MenuIcon />
+                </IconButton>
+              </Tooltip>
+            )}
             <Box
               sx={{
                 display: "flex",
