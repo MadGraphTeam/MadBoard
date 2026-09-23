@@ -7,6 +7,7 @@ import CardsTab from "./CardsTab";
 import PlotsTab from "./PlotsTab";
 import MadNisTab from "./MadNisTab";
 import ScansTab from "./ScansTab";
+import { hasHistogramData } from "../utils/formatting";
 
 function MainContent({
   selectedProcess,
@@ -23,10 +24,7 @@ function MainContent({
 }) {
   // Check if any run has histograms
   const hasPlotsAvailable = useMemo(() => {
-    return Object.values(runsData).some(
-      (runInfo) =>
-        runInfo && runInfo.histograms && runInfo.histograms.length > 0,
-    );
+    return Object.values(runsData).some(hasHistogramData);
   }, [runsData]);
 
   // Check if any run has MadNIS training data with a per-checkpoint "batch" array

@@ -26,7 +26,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { formatScientificTick, RUN_COLORS } from "../utils/formatting";
+import { formatAxisTick, RUN_COLORS } from "../utils/formatting";
 import ChartTooltip from "./ChartTooltip";
 
 // Preferred display order for quantity charts; anything not listed here
@@ -441,9 +441,8 @@ function MadNisTab({ selectedRun, runsData }) {
                     <YAxis
                       scale={scale}
                       domain={[scale === "log" ? "auto" : 0, "auto"]}
-                      tickFormatter={
-                        scale === "log" ? formatScientificTick : undefined
-                      }
+                      tickFormatter={formatAxisTick}
+                      width={70}
                     />
                     <Tooltip content={<ChartTooltip xLabel="Batch" />} />
                     <Legend />

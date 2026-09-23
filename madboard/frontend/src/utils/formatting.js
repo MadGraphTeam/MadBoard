@@ -109,6 +109,37 @@ export function formatScientificTick(value) {
   return `${roundedMantissa}⋅10${exponentSuperscript}`;
 }
 
+/**
+ * Format a chart axis tick, switching to scientific notation once the plain
+ * form would grow long strings of zeros (e.g. cross sections in the
+ * millions/billions of pb, or sub-percent bin widths)
+ * @param {number} value - The tick value to format
+ * @returns {string} Formatted tick label
+ */
+export function formatAxisTick(value) {
+  if (value === 0) return "0";
+  const magnitude = Math.abs(value);
+  if (magnitude >= 1e-2 && magnitude < 1e4) {
+    return String(Number(value.toPrecision(3)));
+  }
+  return formatScientificTick(value);
+}
+
+/**
+ * Whether a run has histogram data to plot, from either the weighted
+ * on-the-fly histograms or the unweighted-output histograms
+ * @param {object} runInfo - A run's info.json contents
+ * @returns {boolean}
+ */
+export function hasHistogramData(runInfo) {
+  if (!runInfo) return false;
+  return (
+    (Array.isArray(runInfo.histograms) && runInfo.histograms.length > 0) ||
+    (Array.isArray(runInfo.event_histograms) &&
+      runInfo.event_histograms.length > 0)
+  );
+}
+
 // Shared color palette for distinguishing runs/subprocesses across charts
 export const RUN_COLORS = [
   "#8884d8",

@@ -10,9 +10,11 @@ import { formatNumber } from "../utils/formatting";
 function ChartTooltip({ active, payload, xLabel }) {
   if (!active || !payload || payload.length === 0) return null;
 
-  // The error band is drawn as its own area; it is reported together with the
-  // value it belongs to instead of as a separate entry
-  const entries = payload.filter((entry) => entry.dataKey !== "yError");
+  // The error/systematic bands are drawn as their own areas; each is
+  // reported together with the value it belongs to instead of as a separate
+  // entry
+  const bandKeys = ["yError", "ySyst"];
+  const entries = payload.filter((entry) => !bandKeys.includes(entry.dataKey));
   if (entries.length === 0) return null;
 
   const xValues = entries.map((entry) => entry.payload?.x);
@@ -27,10 +29,17 @@ function ChartTooltip({ active, payload, xLabel }) {
         </Typography>
       )}
       {entries.map((entry, index) => {
-        const band = entry.payload?.yError;
+        const errorBand = entry.payload?.yError;
         const error =
-          Array.isArray(band) && band[0] != null && band[1] != null
-            ? (band[1] - band[0]) / 2
+          Array.isArray(errorBand) &&
+          errorBand[0] != null &&
+          errorBand[1] != null
+            ? (errorBand[1] - errorBand[0]) / 2
+            : null;
+        const systBand = entry.payload?.ySyst;
+        const syst =
+          Array.isArray(systBand) && systBand[0] != null && systBand[1] != null
+            ? (systBand[1] - systBand[0]) / 2
             : null;
         return (
           <Box
@@ -53,6 +62,7 @@ function ChartTooltip({ active, payload, xLabel }) {
                 : ""}
               : {formatNumber(entry.value)}
               {error !== null ? ` ± ${formatNumber(error)}` : ""}
+              {syst !== null ? ` (syst ± ${formatNumber(syst)})` : ""}
             </Typography>
           </Box>
         );

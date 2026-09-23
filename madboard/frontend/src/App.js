@@ -30,6 +30,7 @@ import MainContent from "./components/MainContent";
 import DiagramsTab from "./components/DiagramsTab";
 import TaskOutputModal from "./components/TaskOutputModal";
 import { errorMessage, useNotify } from "./components/Notifications";
+import { hasHistogramData } from "./utils/formatting";
 
 // Tabs are addressed by name: which tabs exist depends on the selected
 // process and run, so a positional index would silently point at a different
@@ -64,10 +65,7 @@ function App({ isDarkMode, onThemeToggle }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const hasPlotsAvailable = useMemo(() => {
-    return Object.values(runsData).some(
-      (runInfo) =>
-        runInfo && runInfo.histograms && runInfo.histograms.length > 0,
-    );
+    return Object.values(runsData).some(hasHistogramData);
   }, [runsData]);
 
   const hasMadnisAvailable = useMemo(() => {

@@ -8,6 +8,8 @@ import {
   Stack,
   FormControlLabel,
   Checkbox,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import {
   ComposedChart,
@@ -20,24 +22,79 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { formatScientificTick, RUN_COLORS } from "../utils/formatting";
+import { formatAxisTick, RUN_COLORS } from "../utils/formatting";
 import ChartTooltip from "./ChartTooltip";
+
+// The two histogram sources a run's info.json may provide: the existing
+// weighted on-the-fly histograms, and histograms rebinned from the final
+// unweighted output, which also carry scale/PDF systematic uncertainties.
+const MODE_FIELD = {
+  weighted: "histograms",
+  unweighted: "event_histograms",
+};
+
+function runHasMode(runInfo, mode) {
+  const field = MODE_FIELD[mode];
+  return Boolean(
+    runInfo && Array.isArray(runInfo[field]) && runInfo[field].length > 0,
+  );
+}
+
+// Combine the per-bin scale-variation envelope and PDF uncertainty into a
+// single asymmetric systematic band around the central value, adding the two
+// sources in quadrature (the usual treatment for independent theory
+// uncertainties).
+function systematicBand(value, index, scaleEnvelope, pdfUncertainty) {
+  if (!scaleEnvelope || !pdfUncertainty) return null;
+  const scaleUp = Math.max(scaleEnvelope.high[index] - value, 0);
+  const scaleDown = Math.max(value - scaleEnvelope.low[index], 0);
+  const pdfUp = pdfUncertainty.uncertainty_up[index];
+  const pdfDown = pdfUncertainty.uncertainty_down[index];
+  const up = Math.sqrt(scaleUp * scaleUp + pdfUp * pdfUp);
+  const down = Math.sqrt(scaleDown * scaleDown + pdfDown * pdfDown);
+  return [value - down, value + up];
+}
 
 function PlotsTab({ selectedRun, runsData }) {
   const [scales, setScales] = useState({}); // Track linear/log scale per histogram
   const [enabledRuns, setEnabledRuns] = useState(null); // null means use default
+  const [histogramMode, setHistogramMode] = useState(null); // null means use default
+  const [showSystematics, setShowSystematics] = useState(true);
   const allRuns = useMemo(() => Object.keys(runsData), [runsData]);
 
-  // Collect all histograms from all runs to determine which runs have histograms
+  // Collect all runs that have histograms in either mode
   const runsWithHistograms = useMemo(() => {
     const runs = new Set();
     Object.entries(runsData).forEach(([runName, runInfo]) => {
-      if (runInfo && runInfo.histograms && runInfo.histograms.length > 0) {
+      if (
+        runHasMode(runInfo, "weighted") ||
+        runHasMode(runInfo, "unweighted")
+      ) {
         runs.add(runName);
       }
     });
     return Array.from(runs);
   }, [runsData]);
+
+  // Which of the two histogram modes are on offer from at least one run
+  const availableModes = useMemo(() => {
+    const modes = new Set();
+    runsWithHistograms.forEach((runName) => {
+      const runInfo = runsData[runName];
+      if (runHasMode(runInfo, "weighted")) modes.add("weighted");
+      if (runHasMode(runInfo, "unweighted")) modes.add("unweighted");
+    });
+    return modes;
+  }, [runsWithHistograms, runsData]);
+
+  // Default to the unweighted output when available, since it also carries
+  // systematic uncertainties; fall back to whatever mode actually exists.
+  const mode =
+    histogramMode && availableModes.has(histogramMode)
+      ? histogramMode
+      : availableModes.has("unweighted")
+        ? "unweighted"
+        : "weighted";
 
   // Determine which runs to show
   const runsToShow = useMemo(() => {
@@ -64,15 +121,18 @@ function PlotsTab({ selectedRun, runsData }) {
     return colorMap;
   }, [allRuns]);
 
-  // Collect all histograms from enabled runs
+  // Collect all histograms from enabled runs, for the selected mode. A run
+  // that doesn't have data for that mode simply contributes nothing.
   const allHistogramsByName = useMemo(() => {
     const histogramsByName = {};
+    const field = MODE_FIELD[mode];
 
     runsToShow.forEach((runName) => {
       const runInfo = runsData[runName];
-      if (!runInfo || !runInfo.histograms) return;
+      const histograms = runInfo && runInfo[field];
+      if (!histograms) return;
 
-      runInfo.histograms.forEach((histogram) => {
+      histograms.forEach((histogram) => {
         const { name } = histogram;
         if (!histogramsByName[name]) {
           histogramsByName[name] = [];
@@ -85,7 +145,7 @@ function PlotsTab({ selectedRun, runsData }) {
     });
 
     return histogramsByName;
-  }, [runsToShow, runsData]);
+  }, [runsToShow, runsData, mode]);
 
   // Transform histograms into separate chart data arrays per run
   const chartDataByName = useMemo(() => {
@@ -97,33 +157,58 @@ function PlotsTab({ selectedRun, runsData }) {
 
       histogramList.forEach(({ runName, histogram }) => {
         const { min, max, bin_values, bin_errors } = histogram;
+        const pdfUncertainty =
+          histogram.pdf_uncertainty && histogram.pdf_uncertainty[0];
+        const scaleEnvelope = histogram.scale_envelope;
+        const hasSystematics = Boolean(pdfUncertainty && scaleEnvelope);
 
-        // Exclude first and last entries
+        // Exclude first and last entries (under/overflow)
         const values = bin_values.slice(1, -1);
         const errors = bin_errors.slice(1, -1);
+        const scaleEnvelopeInner = scaleEnvelope && {
+          high: scaleEnvelope.high.slice(1, -1),
+          low: scaleEnvelope.low.slice(1, -1),
+        };
+        const pdfUncertaintyInner = pdfUncertainty && {
+          uncertainty_up: pdfUncertainty.uncertainty_up.slice(1, -1),
+          uncertainty_down: pdfUncertainty.uncertainty_down.slice(1, -1),
+        };
 
         // Generate equally spaced x-axis values for this run
         const numBins = values.length;
         const step = (max - min) / numBins;
 
+        const makePoint = (index, x) => {
+          const val = values[index];
+          const point = {
+            x,
+            y: val / step,
+            yError: [
+              (val - errors[index]) / step,
+              (val + errors[index]) / step,
+            ],
+          };
+          if (hasSystematics) {
+            const band = systematicBand(
+              val,
+              index,
+              scaleEnvelopeInner,
+              pdfUncertaintyInner,
+            );
+            point.ySyst = [band[0] / step, band[1] / step];
+          }
+          return point;
+        };
+
         // Create data points for this run with its own x values
-        const runData = values.map((val, index) => ({
-          x: min + index * step,
-          y: val / step,
-          yError: [(val - errors[index]) / step, (val + errors[index]) / step],
-        }));
+        const runData = values.map((_, index) =>
+          makePoint(index, min + index * step),
+        );
 
         // Add final point for step completeness
-        runData.push({
-          x: max,
-          y: values[numBins - 1] / step,
-          yError: [
-            (values[numBins - 1] - errors[numBins - 1]) / step,
-            (values[numBins - 1] + errors[numBins - 1]) / step,
-          ],
-        });
+        runData.push(makePoint(numBins - 1, max));
 
-        runDataArrays[runName] = runData;
+        runDataArrays[runName] = { data: runData, hasSystematics };
       });
 
       data[name] = {
@@ -134,6 +219,14 @@ function PlotsTab({ selectedRun, runsData }) {
 
     return data;
   }, [allHistogramsByName]);
+
+  const anySystematics = useMemo(
+    () =>
+      Object.values(chartDataByName).some(({ runDataArrays }) =>
+        Object.values(runDataArrays).some((run) => run.hasSystematics),
+      ),
+    [chartDataByName],
+  );
 
   const toggleScale = (name) => {
     setScales((prev) => ({
@@ -176,9 +269,44 @@ function PlotsTab({ selectedRun, runsData }) {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Run selection checkboxes */}
+      {/* Mode and run selection controls */}
       <Card>
         <CardContent>
+          {availableModes.size > 1 && (
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              sx={{ mb: 2, flexWrap: "wrap" }}
+            >
+              <ToggleButtonGroup
+                value={mode}
+                exclusive
+                onChange={(event, newMode) =>
+                  newMode && setHistogramMode(newMode)
+                }
+                size="small"
+              >
+                <ToggleButton value="weighted">
+                  Weighted (on-the-fly)
+                </ToggleButton>
+                <ToggleButton value="unweighted">
+                  Unweighted output (+ systematics)
+                </ToggleButton>
+              </ToggleButtonGroup>
+              {mode === "unweighted" && anySystematics && (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={showSystematics}
+                      onChange={(e) => setShowSystematics(e.target.checked)}
+                    />
+                  }
+                  label="Show systematic uncertainty"
+                />
+              )}
+            </Stack>
+          )}
           <Stack
             direction="row"
             justifyContent="space-between"
@@ -236,10 +364,10 @@ function PlotsTab({ selectedRun, runsData }) {
             let xMin = Infinity;
             let xMax = -Infinity;
             histogramList.forEach(({ runName }) => {
-              const data = runDataArrays[runName];
-              if (data && data.length > 0) {
-                const dataMin = Math.min(...data.map((point) => point.x));
-                const dataMax = Math.max(...data.map((point) => point.x));
+              const run = runDataArrays[runName];
+              if (run && run.data.length > 0) {
+                const dataMin = Math.min(...run.data.map((point) => point.x));
+                const dataMax = Math.max(...run.data.map((point) => point.x));
                 xMin = Math.min(xMin, dataMin);
                 xMax = Math.max(xMax, dataMax);
               }
@@ -283,9 +411,8 @@ function PlotsTab({ selectedRun, runsData }) {
                       <YAxis
                         scale={scale}
                         domain={[scale === "log" ? "auto" : 0, "auto"]}
-                        tickFormatter={
-                          scale === "log" ? formatScientificTick : undefined
-                        }
+                        tickFormatter={formatAxisTick}
+                        width={70}
                         label={{
                           value: "Cross section (pb)",
                           angle: -90,
@@ -297,26 +424,59 @@ function PlotsTab({ selectedRun, runsData }) {
                       />
                       <Legend />
 
-                      {/* Render error areas and lines for each run */}
-                      {histogramList.map(({ runName }) => {
+                      {/* Render systematic bands, error areas and lines for each run */}
+                      {histogramList.flatMap(({ runName }) => {
                         const color = runColorMap[runName];
-                        let displayData = runDataArrays[runName];
+                        const run = runDataArrays[runName];
+                        if (!run) return [];
+                        const drawSystematics =
+                          run.hasSystematics &&
+                          mode === "unweighted" &&
+                          showSystematics;
 
                         // Replace non-positive values with null for log scale
-                        if (scale === "log") {
-                          displayData = displayData.map((point) => ({
-                            ...point,
-                            y: point.y > 0 ? point.y : null,
-                            yError: Array.isArray(point.yError)
-                              ? [
-                                  point.yError[0] > 0 ? point.yError[0] : null,
-                                  point.yError[1] > 0 ? point.yError[1] : null,
-                                ]
-                              : point.yError,
-                          }));
-                        }
+                        const displayData =
+                          scale === "log"
+                            ? run.data.map((point) => ({
+                                ...point,
+                                y: point.y > 0 ? point.y : null,
+                                yError: Array.isArray(point.yError)
+                                  ? [
+                                      point.yError[0] > 0
+                                        ? point.yError[0]
+                                        : null,
+                                      point.yError[1] > 0
+                                        ? point.yError[1]
+                                        : null,
+                                    ]
+                                  : point.yError,
+                                ySyst: Array.isArray(point.ySyst)
+                                  ? [
+                                      point.ySyst[0] > 0
+                                        ? point.ySyst[0]
+                                        : null,
+                                      point.ySyst[1] > 0
+                                        ? point.ySyst[1]
+                                        : null,
+                                    ]
+                                  : point.ySyst,
+                              }))
+                            : run.data;
 
                         return [
+                          drawSystematics && (
+                            <Area
+                              key={`syst_${runName}`}
+                              type="stepAfter"
+                              dataKey="ySyst"
+                              data={displayData}
+                              stroke="none"
+                              fill={color}
+                              fillOpacity={0.1}
+                              isAnimationActive={false}
+                              legendType="none"
+                            />
+                          ),
                           <Area
                             key={`area_${runName}`}
                             type="stepAfter"
@@ -324,7 +484,7 @@ function PlotsTab({ selectedRun, runsData }) {
                             data={displayData}
                             stroke="none"
                             fill={color}
-                            fillOpacity={0.2}
+                            fillOpacity={0.25}
                             isAnimationActive={false}
                             legendType="none"
                           />,
@@ -338,10 +498,25 @@ function PlotsTab({ selectedRun, runsData }) {
                             isAnimationActive={false}
                             dot={false}
                           />,
-                        ];
+                        ].filter(Boolean);
                       })}
                     </ComposedChart>
                   </ResponsiveContainer>
+                  {mode === "unweighted" &&
+                    showSystematics &&
+                    histogramList.some(
+                      ({ runName }) => runDataArrays[runName]?.hasSystematics,
+                    ) && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", mt: 1 }}
+                      >
+                        Darker band: statistical uncertainty. Lighter band:
+                        scale &amp; PDF systematic uncertainty (added in
+                        quadrature).
+                      </Typography>
+                    )}
                 </CardContent>
               </Card>
             );

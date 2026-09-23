@@ -30,11 +30,7 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  formatNumber,
-  formatScientificTick,
-  RUN_COLORS,
-} from "../utils/formatting";
+import { formatNumber, formatAxisTick, RUN_COLORS } from "../utils/formatting";
 import ChartTooltip from "./ChartTooltip";
 
 // The scan summary lists the cross section and its error as two independent
@@ -356,9 +352,8 @@ function ScansTab({ selectedRun, scans }) {
                       <YAxis
                         scale={scale}
                         domain={["auto", "auto"]}
-                        tickFormatter={
-                          scale === "log" ? formatScientificTick : undefined
-                        }
+                        tickFormatter={formatAxisTick}
+                        width={70}
                       />
                       <RechartsTooltip
                         content={
